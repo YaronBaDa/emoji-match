@@ -27,15 +27,15 @@
     .card-face {
       position: absolute; inset: 0;
       backface-visibility: hidden; -webkit-backface-visibility: hidden;
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 2rem; will-change: transform;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; will-change: transform;
     }
     .card-back {
       background: linear-gradient(145deg,#1e1b4b,#312e81);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.4);
     }
     .card-back::after {
-      content: '?'; font-size: 1.6rem; font-weight: 800;
+      content: '?'; font-size: 1rem; font-weight: 800;
       color: rgba(255,255,255,0.15); line-height: 1;
     }
     .card-front {
@@ -70,7 +70,7 @@
     }
     .combo-float {
       position: fixed; pointer-events: none; z-index: 200;
-      font-size: 1.3rem; font-weight: 800;
+      font-size: 1.25rem; font-weight: 800;
       color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.6), 0 2px 8px rgba(0,0,0,0.5);
       animation: floatUp 0.5s ease-out forwards;
     }
@@ -79,11 +79,6 @@
       50% { box-shadow: 0 0 24px rgba(239,68,68,0.8); }
     }
     .timer-critical { animation: pulseGlow 0.8s ease-in-out infinite; }
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translate(-50%,10px) scale(0.9); }
-      100% { opacity: 1; transform: translate(-50%,0) scale(1); }
-    }
-    .level-up-toast { animation: fadeInUp 0.4s ease-out forwards; }
     @keyframes bounceIn {
       0% { opacity: 0; transform: scale(0.5); }
       60% { transform: scale(1.05); }
@@ -95,14 +90,6 @@
       50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(99,102,241,0); }
     }
     .btn-pulse { animation: pulseBtn 1.8s ease-in-out infinite; }
-    @keyframes slideDown {
-      0% { width: 100%; }
-    }
-    .timer-start { animation: slideDown 0s; }
-
-    /* ─── Scrollbar hide ─── */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* ─── Grid fade-in ─── */
     .grid-fade-in { animation: gridFadeIn 0.3s ease-out; }
@@ -113,12 +100,13 @@
 
     /* ─── Responsive emoji sizing ─── */
     @media (max-width:380px) {
-      .card-face { font-size: 1.5rem; border-radius: 10px; }
-      .card-back::after { font-size: 1.2rem; }
+      .card-face { font-size: 1rem; border-radius: 8px; }
+      .card-back::after { font-size: 0.85rem; }
+      .combo-float { font-size: 1rem; }
     }
     @media (min-width:500px) {
-      .card-face { font-size: 2.4rem; }
-      .card-back::after { font-size: 1.8rem; }
+      .card-face { font-size: 1.5rem; }
+      .card-back::after { font-size: 1.2rem; }
     }
   </style>
 </head>
@@ -143,24 +131,16 @@
       <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">
         <span>🔥</span><span id="comboCount">x0</span>
       </span>
-      <span class="text-gray-400 font-medium">Lv <span id="levelDisplay">1</span></span>
     </div>
   </div>
 
   <!-- ═══ Grid ═══ -->
-  <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-3 overflow-hidden">
-    <div id="grid" class="grid grid-fade-in"></div>
+  <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-3 overflow-hidden max-h-[65vh]">
+    <div id="grid" class="grid grid-cols-4 grid-fade-in"></div>
   </div>
 
   <!-- ═══ Floating Text Container ═══ -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
-
-  <!-- ═══ Level Up Toast ═══ -->
-  <div id="levelUpToast" class="fixed top-[60px] left-1/2 -translate-x-1/2 z-40 pointer-events-none hidden">
-    <div class="bg-indigo-600/90 backdrop-blur-sm text-white font-bold px-5 py-2 rounded-xl shadow-xl text-sm level-up-toast whitespace-nowrap">
-      ⬆ Level <span id="toastLevelNum">2</span>
-    </div>
-  </div>
 
   <!-- ═══ Game Over Overlay ═══ -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6">
@@ -180,10 +160,6 @@
         <div class="text-center">
           <div class="text-lg font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
           <div class="text-[10px] text-gray-500 uppercase tracking-wider">Best Combo</div>
-        </div>
-        <div class="text-center">
-          <div class="text-lg font-bold text-sky-400"><span id="finalLevel">1</span></div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wider">Level</div>
         </div>
       </div>
 
@@ -212,11 +188,10 @@
 // ══════════════════════════════════════════════════════════════
 //  CONFIGURATION
 // ══════════════════════════════════════════════════════════════
-const LEVELS = [
-  { cols: 3, rows: 4, pairs: 6,  time: 42 },  // 12 cards
-  { cols: 4, rows: 4, pairs: 8,  time: 35 },  // 16 cards
-  { cols: 4, rows: 5, pairs: 10, time: 28 },  // 20 cards
-];
+const COLS = 4;
+const ROWS = 6;
+const TOTAL_PAIRS = 12;
+const START_TIME = 60;
 
 const ALL_EMOJIS = [
   '🔥','💎','🌈','🦄','🚀','🎯','⚡','💫',
@@ -237,23 +212,22 @@ const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
 const COMBO_WINDOW = 2000; // ms
 const MATCH_TIME_BONUS = 2; // seconds
-const GRID_GAP = 8;
+const GRID_GAP = 6;
 const TIMER_INTERVAL = 100; // ms
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════════
 const S = {
-  level: 0,
   score: 0,
   combo: 0,
   maxCombo: 0,
-  timeLeft: 45,
-  maxTime: 45,
-  totalPairs: 6,
+  timeLeft: START_TIME,
+  maxTime: START_TIME,
+  totalPairs: TOTAL_PAIRS,
   matchedPairs: 0,
   flippedIndices: [],
-  cards: [],          // { emoji, matched, flipped, element }
+  cards: [],
   isProcessing: false,
   lastMatchTime: 0,
   timerId: null,
@@ -271,16 +245,12 @@ const timerBar      = $('timerBar');
 const scoreDisplay  = $('scoreDisplay');
 const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
-const levelDisplay  = $('levelDisplay');
 const floatContainer= $('floatingContainer');
-const levelUpToast  = $('levelUpToast');
-const toastLevelNum = $('toastLevelNum');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
 const finalScore    = $('finalScore');
 const finalCombo    = $('finalCombo');
-const finalLevel    = $('finalLevel');
 const rankDisplay   = $('rankDisplay');
 const shareBtn      = $('shareBtn');
 const shareToast    = $('shareToast');
@@ -309,51 +279,39 @@ function getRank(score) {
   return rank;
 }
 
-function getRankShort(score) {
-  const full = getRank(score).title;
-  const parts = full.split(' ');
-  parts.shift(); // remove emoji
-  return parts.join(' ').toUpperCase();
-}
-
 // ══════════════════════════════════════════════════════════════
 //  GRID
 // ══════════════════════════════════════════════════════════════
 function calculateCardSize() {
   const gap = GRID_GAP;
-  const { cols, rows } = LEVELS[S.level];
   const wrapper = gridWrapper;
-  const pad = 12; // px-3 * 2
+  const pad = 12;
   const availW = wrapper.clientWidth - pad;
   const availH = wrapper.clientHeight - pad;
-  const maxByW = (availW - (cols - 1) * gap) / cols;
-  const maxByH = (availH - (rows - 1) * gap) / rows;
-  return Math.max(40, Math.min(maxByW, maxByH));
+  const maxByW = (availW - (COLS - 1) * gap) / COLS;
+  const maxByH = (availH - (ROWS - 1) * gap) / ROWS;
+  return Math.max(32, Math.min(maxByW, maxByH));
 }
 
 function buildGrid() {
-  const lvl = LEVELS[S.level];
-  const { cols, rows } = lvl;
-  S.totalPairs = lvl.pairs;
+  S.totalPairs = TOTAL_PAIRS;
   S.matchedPairs = 0;
   S.cards = [];
 
-  const emojis = getEmojisForLevel(lvl.pairs);
-  const pairs = [...emojis, ...emojis]; // duplicate for pairs
+  const emojis = getEmojisForLevel(TOTAL_PAIRS);
+  const pairs = [...emojis, ...emojis];
   shuffle(pairs);
 
   const size = calculateCardSize();
 
-  gridEl.style.display = 'grid';
-  gridEl.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
-  gridEl.style.gridTemplateRows = `repeat(${rows}, ${size}px)`;
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${size}px)`;
+  gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${size}px)`;
   gridEl.style.gap = `${GRID_GAP}px`;
   gridEl.style.justifyContent = 'center';
   gridEl.style.alignContent = 'center';
 
-  // Fade in
   gridEl.classList.remove('grid-fade-in');
-  void gridEl.offsetWidth; // force reflow
+  void gridEl.offsetWidth;
   gridEl.classList.add('grid-fade-in');
 
   gridEl.innerHTML = '';
@@ -382,7 +340,6 @@ function buildGrid() {
 
     cardWrapper.addEventListener('click', () => onCardClick(idx));
     cardWrapper.addEventListener('touchstart', (e) => {
-      // Prevent double-tap zoom on iOS
       e.preventDefault();
       onCardClick(idx);
     }, { passive: false });
@@ -399,10 +356,6 @@ function buildGrid() {
   });
 }
 
-function getCardEl(index) {
-  return S.cards[index]?.element;
-}
-
 // ══════════════════════════════════════════════════════════════
 //  CARD LOGIC
 // ══════════════════════════════════════════════════════════════
@@ -414,7 +367,6 @@ function onCardClick(index) {
   if (!card || card.matched || card.flipped) return;
   if (S.flippedIndices.includes(index)) return;
 
-  // Flip
   card.flipped = true;
   card.element.classList.add('flipped');
   S.flippedIndices.push(index);
@@ -460,7 +412,7 @@ function handleMatch(i1, i2) {
   if (S.combo > S.maxCombo) S.maxCombo = S.combo;
 
   // Score
-  const multiplier = S.combo + 1; // combo 0 = 1x, combo 1 = 2x, etc.
+  const multiplier = S.combo + 1;
   const points = BASE_SCORE * multiplier;
   S.score += points;
 
@@ -469,7 +421,7 @@ function handleMatch(i1, i2) {
 
   // Floating text for every match
   const midX = (c1.element.getBoundingClientRect().left + c2.element.getBoundingClientRect().right) / 2;
-  const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 20;
+  const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 14;
   const label = S.combo >= 1 ? `+${points} Combo x${multiplier}!` : `+${points}`;
   showFloatingText(label, midX, midY);
 
@@ -477,14 +429,9 @@ function handleMatch(i1, i2) {
   updateScore();
   updateComboDisplay();
 
-  // Check level
+  // Check win
   if (S.matchedPairs >= S.totalPairs) {
-    if (S.level < LEVELS.length - 1) {
-      setTimeout(nextLevel, 700);
-    } else {
-      setTimeout(victory, 700);
-    }
-    // Don't unlock — blocked by level transition
+    setTimeout(victory, 700);
     S.flippedIndices = [];
     return;
   }
@@ -534,8 +481,8 @@ function showFloatingText(text, x, y) {
 // ══════════════════════════════════════════════════════════════
 function startTimer() {
   stopTimer();
-  S.timeLeft = LEVELS[S.level].time;
-  S.maxTime = S.timeLeft;
+  S.timeLeft = START_TIME;
+  S.maxTime = START_TIME;
   updateTimerBar();
   S.timerId = setInterval(() => {
     S.timeLeft -= TIMER_INTERVAL / 1000;
@@ -558,7 +505,7 @@ function stopTimer() {
 
 function addTime(sec) {
   S.timeLeft += sec;
-  S.timeLeft = Math.min(S.timeLeft, S.maxTime + 5); // soft cap
+  S.timeLeft = Math.min(S.timeLeft, S.maxTime + 5);
   updateTimerBar();
 }
 
@@ -569,11 +516,11 @@ function updateTimerBar() {
   let color;
   let critical = false;
   if (pct > 50) {
-    color = '#22c55e'; // green
+    color = '#22c55e';
   } else if (pct > 25) {
-    color = '#eab308'; // yellow
+    color = '#eab308';
   } else if (pct > 10) {
-    color = '#ef4444'; // red
+    color = '#ef4444';
   } else {
     color = '#ef4444';
     critical = true;
@@ -598,34 +545,6 @@ function updateComboDisplay() {
   }
 }
 
-function updateLevelDisplay() {
-  levelDisplay.textContent = S.level + 1;
-}
-
-// ══════════════════════════════════════════════════════════════
-//  LEVELS
-// ══════════════════════════════════════════════════════════════
-function nextLevel() {
-  S.level++;
-  S.flippedIndices = [];
-  S.isProcessing = false;
-
-  // Show toast
-  toastLevelNum.textContent = S.level + 1;
-  levelUpToast.classList.remove('hidden');
-  setTimeout(() => levelUpToast.classList.add('hidden'), 1200);
-
-  buildGrid();
-  updateLevelDisplay();
-
-  // Grid size may have changed; recalculate
-  // Timer continues uninterrupted
-}
-
-function showLevelUpToast(level) {
-  // handled in nextLevel
-}
-
 // ══════════════════════════════════════════════════════════════
 //  GAME OVER / VICTORY
 // ══════════════════════════════════════════════════════════════
@@ -646,12 +565,9 @@ function showOverlay(headerEmoji, titleText) {
   overlayTitle.textContent = titleText;
   finalScore.textContent = S.score;
   finalCombo.textContent = S.maxCombo + 1;
-  finalLevel.textContent = S.level + 1;
   rankDisplay.textContent = getRank(S.score).title;
 
-  // Reset share toast
   shareToast.classList.add('hidden');
-
   gameOverlay.classList.remove('hidden');
 }
 
@@ -665,7 +581,6 @@ function shareScore() {
     `🏆 Score: ${S.score}`,
     `🔥 Max Combo: ${S.maxCombo + 1}`,
     `👑 Rank: ${rankFull}`,
-    `🕹️ Level Reached: ${S.level + 1}`,
     `Can you beat my brain? ⚡ ${GAME_URL}`,
   ].join('\n');
 
@@ -707,9 +622,7 @@ function showShareCopied() {
 function playAgain() {
   stopTimer();
   gameOverlay.classList.add('hidden');
-  levelUpToast.classList.add('hidden');
 
-  S.level = 0;
   S.score = 0;
   S.combo = 0;
   S.maxCombo = 0;
@@ -730,11 +643,9 @@ function initGame() {
   S.gameActive = false;
 
   buildGrid();
-  updateLevelDisplay();
   updateScore();
   updateComboDisplay();
 
-  // Small delay before starting timer so player sees the grid
   S.gameActive = true;
   startTimer();
 }
@@ -745,11 +656,8 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     if (S.gameActive) {
-      // Rebuild grid with new sizes (preserve state)
-      // Save card match states
       const matchedEmojis = S.cards.filter(c => c.matched).map(c => c.emoji);
       buildGrid();
-      // Re-flip matched cards
       S.cards.forEach(c => {
         if (matchedEmojis.includes(c.emoji)) {
           c.matched = true;
@@ -765,7 +673,7 @@ window.addEventListener('resize', () => {
 shareBtn.addEventListener('click', shareScore);
 replayBtn.addEventListener('click', playAgain);
 
-// ─── Keyboard shortcut for replay during development ───
+// ─── Keyboard shortcut for replay ───
 document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') playAgain();
 });
