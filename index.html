@@ -156,6 +156,9 @@
     <div class="flex items-center gap-1.5">
       <span class="text-base">🏆</span>
       <span id="scoreDisplay" class="font-bold text-white tabular-nums">0</span>
+      <span class="text-gray-600 mx-0.5">·</span>
+      <span class="text-[10px] text-gray-500 uppercase tracking-wider">🕹️</span>
+      <span id="movesDisplay" class="font-bold text-white tabular-nums">0</span>
     </div>
     <div class="flex items-center gap-3">
       <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">
@@ -198,7 +201,14 @@
           <div class="text-lg font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
           <div class="text-[10px] text-gray-500 uppercase tracking-wider">Best Combo</div>
         </div>
+        <div class="text-center">
+          <div class="text-lg font-bold text-sky-400"><span id="finalMoves">0</span></div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-wider">Moves</div>
+        </div>
       </div>
+
+      <!-- Benchmark -->
+      <div id="benchmarkDisplay" class="text-xs mt-1"></div>
 
       <!-- Near-miss text -->
       <div id="nearMissText" class="hidden text-sm text-red-400 font-medium mt-1"></div>
@@ -255,6 +265,8 @@ const S = {
   score: 0,
   combo: 0,
   maxCombo: 0,
+  moves: 0,
+  flipHistory: [],
   timeLeft: START_TIME,
   maxTime: START_TIME,
   totalPairs: TOTAL_PAIRS,
@@ -277,6 +289,7 @@ const gridEl        = $('grid');
 const gridWrapper   = $('gridWrapper');
 const timerBar      = $('timerBar');
 const scoreDisplay  = $('scoreDisplay');
+const movesDisplay  = $('movesDisplay');
 const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
 const floatContainer= $('floatingContainer');
@@ -286,6 +299,8 @@ const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
 const finalScore    = $('finalScore');
 const finalCombo    = $('finalCombo');
+const finalMoves    = $('finalMoves');
+const benchmarkDisp = $('benchmarkDisplay');
 const nearMissText  = $('nearMissText');
 const rankDisplay   = $('rankDisplay');
 const shareBtn      = $('shareBtn');
@@ -413,6 +428,8 @@ function onCardClick(index) {
 
   if (S.flippedIndices.length === 2) {
     S.isProcessing = true;
+    S.moves++;
+    movesDisplay.textContent = S.moves;
     setTimeout(checkMatch, 400);
   }
 }
@@ -470,6 +487,9 @@ function handleMatch(i1, i2) {
     spawnConfetti(midX, midY);
   }
 
+  // Record flip result to history
+  S.flipHistory.push(S.combo >= 3 ? '🔥' : '🟩');
+
   // Update UI
   updateScore();
   updateComboDisplay();
@@ -496,6 +516,9 @@ function handleMismatch(i1, i2) {
 
   S.combo = 0;
   updateComboDisplay();
+
+  // Record flip result to history
+  S.flipHistory.push('🟥');
 
   setTimeout(() => {
     el1.classList.remove('flipped','mismatch');
@@ -647,6 +670,7 @@ function updateTimerBar() {
 // ══════════════════════════════════════════════════════════════
 function updateScore() {
   scoreDisplay.textContent = S.score;
+  movesDisplay.textContent = S.moves;
 }
 
 function updateComboDisplay() {
@@ -681,6 +705,18 @@ function showOverlay(headerEmoji, titleText) {
   overlayTitle.textContent = titleText;
   finalScore.textContent = S.score;
   finalCombo.textContent = S.maxCombo + 1;
+  finalMoves.textContent = S.moves;
+
+  // Benchmark: Your Moves vs. Average Human (32)
+  const avg = 32;
+  const moves = S.moves;
+  if (moves < avg) {
+    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-emerald-400 font-bold\">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class=\"text-emerald-400 font-bold\">Brain Status: Elite 🧠</span>`;
+  } else if (moves === avg) {
+    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-amber-400 font-bold\">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class=\"text-amber-400\">Right on average</span>`;
+  } else {
+    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-red-400 font-bold\">${moves}</span> vs. Average Human: ${avg}`;
+  }
 
   // Spite-driven rank based on remaining pairs
   const remaining = S.totalPairs - S.matchedPairs;
@@ -706,11 +742,21 @@ function showOverlay(headerEmoji, titleText) {
 function shareScore() {
   const remaining = S.totalPairs - S.matchedPairs;
   const spite = getSpiteRank(remaining);
+
+  // Build visual share map: rows of 4 squares from flipHistory
+  let mapRows = [];
+  for (let i = 0; i < S.flipHistory.length; i += 4) {
+    mapRows.push(S.flipHistory.slice(i, i + 4).join(''));
+  }
+  const visualMap = mapRows.join('\n');
+
   const text = [
-    `🧠 EMOJI MATCH 🧠`,
-    `🏆 Score: ${S.score}`,
-    `🔥 Max Combo: ${S.maxCombo + 1}`,
-    `👑 Rank: ${spite.title}`,
+    `🧠 EMOJI MATCH: 24-CARD CHALLENGE 🧠`,
+    `⏱️ Time Left: ${Math.floor(S.timeLeft)}s | 🕹️ Moves: ${S.moves} (Avg: 32)`,
+    `🔥 Max Combo: x${S.maxCombo + 1} | 👑 Rank: ${spite.title}`,
+    ``,
+    visualMap,
+    ``,
     `Can you beat my brain? ⚡ ${GAME_URL}`,
   ].join('\n');
 
@@ -761,6 +807,8 @@ function playAgain() {
   S.score = 0;
   S.combo = 0;
   S.maxCombo = 0;
+  S.moves = 0;
+  S.flipHistory = [];
   S.matchedPairs = 0;
   S.flippedIndices = [];
   S.isProcessing = false;
