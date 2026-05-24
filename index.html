@@ -147,7 +147,7 @@
 
     /* ─── Feature Flag: COMPACT_HUD ─── */
     .compact-mode #hudFull { display: none; }
-    :not(.compact-mode) #hudCompact { display: none; }
+    #game:not(.compact-mode) #hudCompact { display: none; }
     #hudFull, #hudCompact { transition: all 0.3s ease; }
 
     /* ─── Feature Flag: VANISH_MATCHES ─── */
@@ -211,25 +211,25 @@
   </div>
 
   <!-- ═══ Compact HUD (shown in COMPACT_HUD mode) ═══ -->
-  <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 py-2.5">
-    <div class="flex items-center justify-between gap-2">
-      <!-- Left: timer bar vertical stripe + stats -->
-      <div class="flex items-center gap-3 flex-1 min-w-0">
-        <div class="w-1 h-8 bg-gray-800/40 rounded-full overflow-hidden flex-shrink-0">
+  <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-white/10 shadow-2xl px-3 py-2.5">
+    <div class="flex items-center justify-between gap-1">
+      <!-- Left: timer bar vertical strip + stats -->
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <div class="w-[3px] h-7 bg-gray-800/40 rounded-full overflow-hidden flex-shrink-0">
           <div id="timerBarCompact" class="w-full rounded-full transition-all duration-150 ease-linear" style="height:100%;background:#22c55e"></div>
         </div>
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-sm">🏆</span>
+        <div class="flex items-center gap-1.5 min-w-0 text-xs">
+          <span>🏆</span>
           <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-          <span class="text-gray-600 text-xs">·</span>
-          <span class="text-[10px] text-gray-500">🕹️</span>
+          <span class="text-gray-600">·</span>
+          <span class="text-[10px] text-gray-400">🕹️</span>
           <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
         </div>
       </div>
       <!-- Right: logo + combo -->
       <div class="flex items-center gap-2 flex-shrink-0">
-        <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-sm sm:text-base">EMOJI MATCH</span>
-        <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-[10px]">
+        <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-sm">EMOJI MATCH</span>
+        <span id="comboDisplayCompact" class="hidden items-center gap-0.5 text-amber-400 font-extrabold tracking-tight text-[10px]">
           <span>🔥</span><span id="comboCountCompact">x0</span>
         </span>
       </div>
@@ -237,17 +237,17 @@
   </div>
 
   <!-- ═══ Grid ═══ -->
-  <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-2 overflow-hidden max-h-[65vh]">
+  <div id="gridWrapper" class="flex-1 min-h-0 flex items-center justify-center px-3 pb-2 overflow-hidden">
     <div id="grid" class="grid grid-cols-4 gap-2 grid-fade-in"></div>
   </div>
 
   <!-- ═══ X-Ray Power-Up (Glass container) ═══ -->
-  <div class="flex-shrink-0 pb-3 px-3 flex justify-center">
-    <div class="bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl px-4 py-2.5 flex items-center gap-3">
-      <button id="xrayBtn" class="flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-5 py-1.5 text-xs font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
+  <div class="flex-shrink-0 pb-2 px-3 flex justify-center">
+    <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 shadow-2xl rounded-xl px-3 py-2 flex items-center gap-2">
+      <button id="xrayBtn" class="flex items-center gap-1 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
         👁️ X-RAY
       </button>
-      <span class="text-[10px] text-gray-500 font-medium">Peek once — use wisely</span>
+      <span class="text-[10px] text-gray-500 font-medium">Peek once</span>
     </div>
   </div>
 
