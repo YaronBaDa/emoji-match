@@ -4,14 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
   <title>Emoji Match</title>
+  <!-- Google Fonts: Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Embedded SVG Favicon (brain emoji) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* ─── Base Reset ─── */
+    /* ─── Base Reset — Premium Dark Glass ─── */
     * { -webkit-tap-highlight-color: transparent; }
     html, body {
       height: 100dvh; overflow: hidden; margin: 0; padding: 0;
-      background: #030712; color: #f1f5f9;
-      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background: radial-gradient(ellipse at top, #1e293b, #0f172a, #09090b);
+      color: #f1f5f9;
+      font-family: 'Space Grotesk', sans-serif;
       user-select: none; -webkit-user-select: none;
       touch-action: manipulation;
     }
@@ -31,7 +38,6 @@
       will-change: transform;
     }
     .card-front {
-      /* font-size set dynamically in JS at 80% of card size */
       transform: rotateY(180deg);
       background: linear-gradient(145deg,#1e293b,#0f172a);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.4);
@@ -144,89 +150,100 @@
 
 <div id="game" class="h-full w-full flex flex-col overflow-hidden">
 
-  <!-- ═══ Timer Bar ═══ -->
-  <div class="flex-shrink-0 px-3 pt-2.5 pb-1">
-    <div class="w-full h-[5px] bg-gray-800/60 rounded-full overflow-hidden">
+  <!-- ═══ Glass Header Panel (Timer + Logo + Stats) ═══ -->
+  <div class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 pt-3 pb-2">
+    <!-- Timer bar inside the glass panel -->
+    <div class="w-full h-[5px] bg-gray-800/40 rounded-full overflow-hidden mb-3">
       <div id="timerBar" class="h-full rounded-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
     </div>
-  </div>
 
-  <!-- ═══ Stats Bar ═══ -->
-  <div class="flex-shrink-0 flex items-center justify-between px-4 py-1.5 text-xs sm:text-sm">
-    <div class="flex items-center gap-1.5">
-      <span class="text-base">🏆</span>
-      <span id="scoreDisplay" class="font-bold text-white tabular-nums">0</span>
-      <span class="text-gray-600 mx-0.5">·</span>
-      <span class="text-[10px] text-gray-500 uppercase tracking-wider">🕹️</span>
-      <span id="movesDisplay" class="font-bold text-white tabular-nums">0</span>
-    </div>
-    <div class="flex items-center gap-3">
-      <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">
+    <!-- Logo row -->
+    <div class="flex items-center justify-between">
+      <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-xl sm:text-2xl">EMOJI MATCH</span>
+
+      <!-- Combo (appears when active) -->
+      <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
         <span>🔥</span><span id="comboCount">x0</span>
       </span>
+    </div>
+
+    <!-- Stats row -->
+    <div class="flex items-center justify-between mt-1 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🏆</span>
+        <span id="scoreDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        <span class="text-gray-700">|</span>
+        <span class="text-[10px] text-gray-500 uppercase tracking-wider">🕹️</span>
+        <span id="movesDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+      </div>
+      <div class="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider">
+        <span id="xrayStatus" class="opacity-40">👁️</span>
+      </div>
     </div>
   </div>
 
   <!-- ═══ Grid ═══ -->
-  <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-3 overflow-hidden max-h-[65vh]">
+  <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-2 overflow-hidden max-h-[65vh]">
     <div id="grid" class="grid grid-cols-4 gap-2 grid-fade-in"></div>
   </div>
 
-  <!-- ═══ X-Ray Power-Up Button ═══ -->
-  <div class="flex-shrink-0 pb-3 flex justify-center">
-    <button id="xrayBtn" class="flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-5 py-2 text-xs font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
-      👁️ X-RAY
-    </button>
+  <!-- ═══ X-Ray Power-Up (Glass container) ═══ -->
+  <div class="flex-shrink-0 pb-3 px-3 flex justify-center">
+    <div class="bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl px-4 py-2.5 flex items-center gap-3">
+      <button id="xrayBtn" class="flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-5 py-1.5 text-xs font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
+        👁️ X-RAY
+      </button>
+      <span class="text-[10px] text-gray-500 font-medium">Peek once — use wisely</span>
+    </div>
   </div>
 
   <!-- ═══ Floating Text Container ═══ -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
-  <!-- ═══ Game Over Overlay ═══ -->
-  <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-    <div class="overlay-content flex flex-col items-center gap-4 w-full max-w-xs text-center">
+  <!-- ═══ Game Over Overlay (Glass Modal) ═══ -->
+  <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
+    <div class="overlay-content flex flex-col items-center gap-4 w-full max-w-xs text-center bg-slate-900/70 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl px-6 py-7">
       <!-- Header -->
       <div id="overlayHeader" class="text-4xl mb-1">💀</div>
-      <div id="overlayTitle" class="text-2xl font-extrabold tracking-tight text-white">Game Over</div>
+      <div id="overlayTitle" class="text-2xl font-black tracking-tight text-white">Game Over</div>
 
       <!-- Score -->
-      <div class="mt-2 text-center">
+      <div class="mt-1 text-center">
         <div class="text-5xl font-black tabular-nums text-white"><span id="finalScore">0</span></div>
-        <div class="text-xs text-gray-400 uppercase tracking-widest mt-0.5">Score</div>
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5 font-medium">Score</div>
       </div>
 
       <!-- Stats row -->
       <div class="flex items-center gap-6 mt-1 text-sm">
         <div class="text-center">
-          <div class="text-lg font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wider">Best Combo</div>
+          <div class="text-lg font-extrabold tracking-tight text-orange-400"><span id="finalCombo">0</span>x</div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Best Combo</div>
         </div>
         <div class="text-center">
-          <div class="text-lg font-bold text-sky-400"><span id="finalMoves">0</span></div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wider">Moves</div>
+          <div class="text-lg font-extrabold tracking-tight text-sky-400"><span id="finalMoves">0</span></div>
+          <div class="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Moves</div>
         </div>
       </div>
 
       <!-- Benchmark -->
-      <div id="benchmarkDisplay" class="text-xs mt-1"></div>
+      <div id="benchmarkDisplay" class="text-xs mt-1 font-medium"></div>
 
       <!-- Near-miss text -->
-      <div id="nearMissText" class="hidden text-sm text-red-400 font-medium mt-1"></div>
+      <div id="nearMissText" class="hidden text-sm text-red-400 font-semibold mt-1"></div>
 
       <!-- Rank -->
-      <div class="mt-1 bg-white/5 rounded-2xl px-5 py-2.5 border border-white/10 w-full">
-        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5">Rank</div>
-        <div id="rankDisplay" class="text-lg font-bold text-amber-400">—</div>
+      <div class="mt-1 bg-white/5 backdrop-blur-sm rounded-2xl px-5 py-2.5 border border-white/10 w-full">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5 font-medium">Rank</div>
+        <div id="rankDisplay" class="text-lg font-extrabold tracking-tight text-amber-400">—</div>
       </div>
 
       <!-- Share -->
-      <button id="shareBtn" class="w-full mt-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/20 rounded-2xl px-5 py-3 text-sm font-semibold transition-colors border border-white/10">
+      <button id="shareBtn" class="w-full mt-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 text-sm font-bold transition-colors border border-white/10">
         <span>📤</span> <span>Brag &amp; Share</span>
       </button>
-      <div id="shareToast" class="hidden text-[11px] text-emerald-400 font-medium transition-opacity">✓ Copied to clipboard!</div>
 
       <!-- Play Again -->
-      <button id="replayBtn" class="btn-pulse w-full mt-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-colors shadow-lg shadow-indigo-600/30">
+      <button id="replayBtn" class="btn-pulse w-full mt-1 bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 active:from-indigo-700 active:to-fuchsia-700 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
         🔄 Play Again
       </button>
     </div>
@@ -253,10 +270,10 @@ const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
 const COMBO_WINDOW = 2000; // ms
 const MATCH_TIME_BONUS = 2; // seconds
-const GRID_GAP = 8; // matches Tailwind gap-2
+const GRID_GAP = 8;
 const TIMER_INTERVAL = 100; // ms
-const ADRENALINE_THRESHOLD = 0.20; // 20%
-const EMOJI_SCALE = 0.80; // 80% of card size
+const ADRENALINE_THRESHOLD = 0.20;
+const EMOJI_SCALE = 0.80;
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
@@ -294,6 +311,7 @@ const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
 const floatContainer= $('floatingContainer');
 const xrayBtn       = $('xrayBtn');
+const xrayStatus    = $('xrayStatus');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
@@ -304,7 +322,6 @@ const benchmarkDisp = $('benchmarkDisplay');
 const nearMissText  = $('nearMissText');
 const rankDisplay   = $('rankDisplay');
 const shareBtn      = $('shareBtn');
-const shareToast    = $('shareToast');
 const replayBtn     = $('replayBtn');
 const gameEl        = $('game');
 
@@ -385,7 +402,6 @@ function buildGrid() {
     const front = document.createElement('div');
     front.className = 'card-face card-front';
     front.textContent = emoji;
-    // 80% emoji scale — fills most of the card with clean margin
     front.style.fontSize = `${emojiSize}px`;
     front.style.lineHeight = '1';
 
@@ -457,7 +473,6 @@ function handleMatch(i1, i2) {
 
   S.matchedPairs++;
 
-  // Combo
   const now = performance.now();
   if (S.lastMatchTime && (now - S.lastMatchTime < COMBO_WINDOW)) {
     S.combo++;
@@ -468,33 +483,26 @@ function handleMatch(i1, i2) {
 
   if (S.combo > S.maxCombo) S.maxCombo = S.combo;
 
-  // Score
   const multiplier = S.combo + 1;
   const points = BASE_SCORE * multiplier;
   S.score += points;
 
-  // Time bonus
   addTime(MATCH_TIME_BONUS);
 
-  // Floating text for every match
   const midX = (c1.element.getBoundingClientRect().left + c2.element.getBoundingClientRect().right) / 2;
   const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 14;
   const label = S.combo >= 1 ? `+${points} Combo x${multiplier}!` : `+${points}`;
   showFloatingText(label, midX, midY);
 
-  // Confetti burst on high combo (3+ consecutive = 4x+ multiplier)
   if (S.combo >= 3) {
     spawnConfetti(midX, midY);
   }
 
-  // Record flip result to history
   S.flipHistory.push(S.combo >= 3 ? '🔥' : '🟩');
 
-  // Update UI
   updateScore();
   updateComboDisplay();
 
-  // Check win
   if (S.matchedPairs >= S.totalPairs) {
     setTimeout(victory, 700);
     S.flippedIndices = [];
@@ -517,7 +525,6 @@ function handleMismatch(i1, i2) {
   S.combo = 0;
   updateComboDisplay();
 
-  // Record flip result to history
   S.flipHistory.push('🟥');
 
   setTimeout(() => {
@@ -536,7 +543,6 @@ function handleMismatch(i1, i2) {
 function activateXray() {
   if (!S.gameActive || S.xrayUsed) return;
 
-  // Collect all face-down cards (not matched, not currently flipped)
   const faceDown = [];
   S.cards.forEach((card) => {
     if (!card.matched && !card.flipped) {
@@ -546,24 +552,22 @@ function activateXray() {
 
   if (faceDown.length === 0) return;
 
-  // Flip them all face-up visually
   faceDown.forEach(card => {
     card.element.classList.add('flipped');
   });
 
-  // After 500ms flip them back
   setTimeout(() => {
     faceDown.forEach(card => {
-      // Only flip back if the card hasn't been matched in the meantime
       if (!card.matched) {
         card.element.classList.remove('flipped');
       }
     });
   }, 500);
 
-  // Mark used and disable button
   S.xrayUsed = true;
   xrayBtn.classList.add('opacity-40', 'pointer-events-none');
+  xrayStatus.classList.remove('opacity-40');
+  xrayStatus.textContent = '✗';
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -585,7 +589,6 @@ function showFloatingText(text, x, y) {
 // ══════════════════════════════════════════════════════════════
 function spawnConfetti(x, y) {
   const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff','#ff9f43','#00d2d3','#a29bfe'];
-  const shapes = ['50%','2px','1px solid transparent'];
   for (let i = 0; i < 24; i++) {
     const el = document.createElement('div');
     const color = colors[Math.floor(Math.random() * colors.length)];
@@ -644,7 +647,6 @@ function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
   timerBar.style.width = `${pct}%`;
 
-  // Timer bar color
   let color;
   let critical = false;
   if (pct > 50) {
@@ -660,7 +662,6 @@ function updateTimerBar() {
   timerBar.style.background = color;
   timerBar.classList.toggle('timer-critical', critical && S.gameActive);
 
-  // Adrenaline mode — full-screen pulse when under 20%
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
   gameEl.classList.toggle('adrenaline-mode', adrenaline);
 }
@@ -698,7 +699,6 @@ function victory() {
 }
 
 function showOverlay(headerEmoji, titleText) {
-  // Clear adrenaline overlay
   gameEl.classList.remove('adrenaline-mode');
 
   overlayHeader.textContent = headerEmoji;
@@ -707,23 +707,20 @@ function showOverlay(headerEmoji, titleText) {
   finalCombo.textContent = S.maxCombo + 1;
   finalMoves.textContent = S.moves;
 
-  // Benchmark: Your Moves vs. Average Human (32)
   const avg = 32;
   const moves = S.moves;
   if (moves < avg) {
-    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-emerald-400 font-bold\">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class=\"text-emerald-400 font-bold\">Brain Status: Elite 🧠</span>`;
+    benchmarkDisp.innerHTML = `Your Moves: <span class="text-emerald-400 font-bold">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class="text-emerald-400 font-bold">Brain Status: Elite 🧠</span>`;
   } else if (moves === avg) {
-    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-amber-400 font-bold\">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class=\"text-amber-400\">Right on average</span>`;
+    benchmarkDisp.innerHTML = `Your Moves: <span class="text-amber-400 font-bold">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class="text-amber-400">Right on average</span>`;
   } else {
-    benchmarkDisp.innerHTML = `Your Moves: <span class=\"text-red-400 font-bold\">${moves}</span> vs. Average Human: ${avg}`;
+    benchmarkDisp.innerHTML = `Your Moves: <span class="text-red-400 font-bold">${moves}</span> vs. Average Human: ${avg}`;
   }
 
-  // Spite-driven rank based on remaining pairs
   const remaining = S.totalPairs - S.matchedPairs;
   const spite = getSpiteRank(remaining);
   rankDisplay.textContent = spite.title;
 
-  // Spite-driven subtitle
   if (headerEmoji === '💀' && remaining > 0) {
     nearMissText.textContent = spite.subtitle;
     nearMissText.classList.remove('hidden');
@@ -732,7 +729,6 @@ function showOverlay(headerEmoji, titleText) {
     nearMissText.classList.remove('hidden');
   }
 
-  shareToast.classList.add('hidden');
   gameOverlay.classList.remove('hidden');
 }
 
@@ -743,7 +739,6 @@ function shareScore() {
   const remaining = S.totalPairs - S.matchedPairs;
   const spite = getSpiteRank(remaining);
 
-  // Build visual share map: rows of 4 squares from flipHistory
   let mapRows = [];
   for (let i = 0; i < S.flipHistory.length; i += 4) {
     mapRows.push(S.flipHistory.slice(i, i + 4).join(''));
@@ -788,7 +783,6 @@ function fallbackCopy(text) {
 }
 
 function showShareCopied() {
-  // Change button to "Copied! 📋" with green highlight for 1.5s
   shareBtn.innerHTML = 'Copied! 📋';
   shareBtn.classList.add('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
   setTimeout(() => {
@@ -815,10 +809,10 @@ function playAgain() {
   S.gameActive = false;
   S.xrayUsed = false;
 
-  // Re-enable X-Ray button
   xrayBtn.classList.remove('opacity-40', 'pointer-events-none');
+  xrayStatus.classList.add('opacity-40');
+  xrayStatus.textContent = '👁️';
 
-  // Reset share button in case it was in "Copied!" state
   shareBtn.innerHTML = '<span>📤</span> <span>Brag &amp; Share</span>';
   shareBtn.classList.remove('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
 
