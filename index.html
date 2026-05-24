@@ -31,7 +31,7 @@
       will-change: transform;
     }
     .card-front {
-      /* font-size set dynamically in JS at 84% of card size */
+      /* font-size set dynamically in JS at 80% of card size */
       transform: rotateY(180deg);
       background: linear-gradient(145deg,#1e293b,#0f172a);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.4);
@@ -74,6 +74,17 @@
       font-size: 1.25rem; font-weight: 800;
       color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.6), 0 2px 8px rgba(0,0,0,0.5);
       animation: floatUp 0.5s ease-out forwards;
+    }
+
+    /* ─── Confetti burst ─── */
+    @keyframes confettiBurst {
+      0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(540deg) scale(0.2); }
+    }
+    .confetti-piece {
+      position: fixed; pointer-events: none; z-index: 200;
+      border-radius: 2px;
+      animation: confettiBurst 0.7s ease-out forwards;
     }
 
     /* ─── Adrenaline Mode — full-screen pulse ─── */
@@ -228,14 +239,6 @@ const ALL_EMOJIS = [
   '🍕','🧩','🛸','🎸','🎪','🐲','🎨','🍭',
 ];
 
-const RANKS = [
-  { min: 0,     title: '🐠 Goldfish Memory' },
-  { min: 400,   title: '👤 Average Human' },
-  { min: 1500,  title: '📜 Meme Scholar' },
-  { min: 3500,  title: '🧠 Gigabrain' },
-  { min: 6000,  title: '👑 Emoji Deity' },
-];
-
 const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
 const COMBO_WINDOW = 2000; // ms
@@ -243,7 +246,7 @@ const MATCH_TIME_BONUS = 2; // seconds
 const GRID_GAP = 8; // matches Tailwind gap-2
 const TIMER_INTERVAL = 100; // ms
 const ADRENALINE_THRESHOLD = 0.20; // 20%
-const EMOJI_SCALE = 0.84; // 84% of card size
+const EMOJI_SCALE = 0.80; // 80% of card size
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
@@ -305,12 +308,11 @@ function getEmojisForLevel(count) {
   return shuffle([...ALL_EMOJIS]).slice(0, count);
 }
 
-function getRank(score) {
-  let rank = RANKS[0];
-  for (const r of RANKS) {
-    if (score >= r.min) rank = r;
-  }
-  return rank;
+function getSpiteRank(remaining) {
+  if (remaining >= 7) return { title: 'Total Noob', subtitle: 'Brain Status: Cooked 🍳' };
+  if (remaining >= 4) return { title: 'Average Human', subtitle: 'Getting Warm... 🌶️' };
+  if (remaining >= 1) return { title: 'Certified Gigabrain', subtitle: 'SO CLOSE! 😫' };
+  return { title: 'Absolute Legend', subtitle: 'EMOJI DEITY 👑' };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -368,7 +370,7 @@ function buildGrid() {
     const front = document.createElement('div');
     front.className = 'card-face card-front';
     front.textContent = emoji;
-    // 84% emoji scale — fills most of the card
+    // 80% emoji scale — fills most of the card with clean margin
     front.style.fontSize = `${emojiSize}px`;
     front.style.lineHeight = '1';
 
@@ -463,6 +465,11 @@ function handleMatch(i1, i2) {
   const label = S.combo >= 1 ? `+${points} Combo x${multiplier}!` : `+${points}`;
   showFloatingText(label, midX, midY);
 
+  // Confetti burst on high combo (3+ consecutive = 4x+ multiplier)
+  if (S.combo >= 3) {
+    spawnConfetti(midX, midY);
+  }
+
   // Update UI
   updateScore();
   updateComboDisplay();
@@ -548,6 +555,33 @@ function showFloatingText(text, x, y) {
   el.style.transform = 'translate(-50%,-50%)';
   floatContainer.appendChild(el);
   el.addEventListener('animationend', () => el.remove());
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONFETTI BURST
+// ══════════════════════════════════════════════════════════════
+function spawnConfetti(x, y) {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff','#ff9f43','#00d2d3','#a29bfe'];
+  const shapes = ['50%','2px','1px solid transparent'];
+  for (let i = 0; i < 24; i++) {
+    const el = document.createElement('div');
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 70;
+    const size = 4 + Math.random() * 6;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left:${x}px; top:${y}px;
+      width:${size}px; height:${size}px;
+      background:${color};
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+      --dx:${dx}px; --dy:${dy}px;
+    `;
+    floatContainer.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -647,19 +681,19 @@ function showOverlay(headerEmoji, titleText) {
   overlayTitle.textContent = titleText;
   finalScore.textContent = S.score;
   finalCombo.textContent = S.maxCombo + 1;
-  rankDisplay.textContent = getRank(S.score).title;
 
-  // Near-miss feedback
-  if (headerEmoji === '💀') {
-    const remaining = S.totalPairs - S.matchedPairs;
-    if (remaining > 0) {
-      nearMissText.textContent = `Game Over! You were only ${remaining} pair${remaining !== 1 ? 's' : ''} away from victory!`;
-      nearMissText.classList.remove('hidden');
-    } else {
-      nearMissText.classList.add('hidden');
-    }
+  // Spite-driven rank based on remaining pairs
+  const remaining = S.totalPairs - S.matchedPairs;
+  const spite = getSpiteRank(remaining);
+  rankDisplay.textContent = spite.title;
+
+  // Spite-driven subtitle
+  if (headerEmoji === '💀' && remaining > 0) {
+    nearMissText.textContent = spite.subtitle;
+    nearMissText.classList.remove('hidden');
   } else {
-    nearMissText.classList.add('hidden');
+    nearMissText.textContent = spite.subtitle;
+    nearMissText.classList.remove('hidden');
   }
 
   shareToast.classList.add('hidden');
@@ -670,12 +704,13 @@ function showOverlay(headerEmoji, titleText) {
 //  SHARE
 // ══════════════════════════════════════════════════════════════
 function shareScore() {
-  const rankFull = getRank(S.score).title;
+  const remaining = S.totalPairs - S.matchedPairs;
+  const spite = getSpiteRank(remaining);
   const text = [
     `🧠 EMOJI MATCH 🧠`,
     `🏆 Score: ${S.score}`,
     `🔥 Max Combo: ${S.maxCombo + 1}`,
-    `👑 Rank: ${rankFull}`,
+    `👑 Rank: ${spite.title}`,
     `Can you beat my brain? ⚡ ${GAME_URL}`,
   ].join('\n');
 
@@ -707,8 +742,13 @@ function fallbackCopy(text) {
 }
 
 function showShareCopied() {
-  shareToast.classList.remove('hidden');
-  setTimeout(() => shareToast.classList.add('hidden'), 2500);
+  // Change button to "Copied! 📋" with green highlight for 1.5s
+  shareBtn.innerHTML = 'Copied! 📋';
+  shareBtn.classList.add('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
+  setTimeout(() => {
+    shareBtn.innerHTML = '<span>📤</span> <span>Brag &amp; Share</span>';
+    shareBtn.classList.remove('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
+  }, 1500);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -729,6 +769,10 @@ function playAgain() {
 
   // Re-enable X-Ray button
   xrayBtn.classList.remove('opacity-40', 'pointer-events-none');
+
+  // Reset share button in case it was in "Copied!" state
+  shareBtn.innerHTML = '<span>📤</span> <span>Brag &amp; Share</span>';
+  shareBtn.classList.remove('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
 
   updateScore();
   updateComboDisplay();
