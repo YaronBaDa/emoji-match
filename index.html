@@ -144,14 +144,42 @@
     @media (min-width:500px) {
       .card-back::after { font-size: 1.2rem; }
     }
+
+    /* ─── Feature Flag: COMPACT_HUD ─── */
+    .compact-mode #hudFull { display: none; }
+    :not(.compact-mode) #hudCompact { display: none; }
+    #hudFull, #hudCompact { transition: all 0.3s ease; }
+
+    /* ─── Feature Flag: VANISH_MATCHES ─── */
+    .vanish-mode .card.matched {
+      opacity: 0 !important;
+      transition: opacity 0.45s ease !important;
+      pointer-events: none !important;
+    }
+    .vanish-mode .card.matched .card-front {
+      box-shadow: none !important;
+    }
+
+    /* ─── Feature Flag: CYBER_GRID_BG ─── */
+    .cyber-bg::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
   </style>
 </head>
 <body>
 
 <div id="game" class="h-full w-full flex flex-col overflow-hidden">
 
-  <!-- ═══ Glass Header Panel (Timer + Logo + Stats) ═══ -->
-  <div class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 pt-3 pb-2">
+  <!-- ═══ Full Header Panel (hidden in COMPACT_HUD) ═══ -->
+  <div id="hudFull" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 pt-3 pb-2">
     <!-- Timer bar inside the glass panel -->
     <div class="w-full h-[5px] bg-gray-800/40 rounded-full overflow-hidden mb-3">
       <div id="timerBar" class="h-full rounded-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
@@ -178,6 +206,32 @@
       </div>
       <div class="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider">
         <span id="xrayStatus" class="opacity-40">👁️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Compact HUD (shown in COMPACT_HUD mode) ═══ -->
+  <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 py-2.5">
+    <div class="flex items-center justify-between gap-2">
+      <!-- Left: timer bar vertical stripe + stats -->
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div class="w-1 h-8 bg-gray-800/40 rounded-full overflow-hidden flex-shrink-0">
+          <div id="timerBarCompact" class="w-full rounded-full transition-all duration-150 ease-linear" style="height:100%;background:#22c55e"></div>
+        </div>
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-sm">🏆</span>
+          <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+          <span class="text-gray-600 text-xs">·</span>
+          <span class="text-[10px] text-gray-500">🕹️</span>
+          <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        </div>
+      </div>
+      <!-- Right: logo + combo -->
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-sm sm:text-base">EMOJI MATCH</span>
+        <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-[10px]">
+          <span>🔥</span><span id="comboCountCompact">x0</span>
+        </span>
       </div>
     </div>
   </div>
@@ -253,11 +307,21 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  CONFIGURATION
+//  FEATURE FLAGS — toggle on/off from here
 // ══════════════════════════════════════════════════════════════
-const COLS = 4;
-const ROWS = 6;
-const TOTAL_PAIRS = 12;
+const GAME_CONFIG = {
+  COMPACT_HUD: true,        // Single-row slim header
+  VANISH_MATCHES: true,     // Matched cards fade to opacity-0
+  CYBER_GRID_BG: true,      // Pure CSS background matrix pattern
+  EMOJI_SCALE_PERCENT: 80,  // Emoji at 80% of card size
+  GRID_ROWS: 6,
+  GRID_COLS: 4,
+};
+
+// ══════════════════════════════════════════════════════════════
+//  GAME CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const TOTAL_PAIRS = Math.floor(GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS / 2);
 const START_TIME = 60;
 
 const ALL_EMOJIS = [
@@ -268,12 +332,11 @@ const ALL_EMOJIS = [
 
 const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
-const COMBO_WINDOW = 2000; // ms
-const MATCH_TIME_BONUS = 2; // seconds
+const COMBO_WINDOW = 2000;
+const MATCH_TIME_BONUS = 2;
 const GRID_GAP = 8;
-const TIMER_INTERVAL = 100; // ms
+const TIMER_INTERVAL = 100;
 const ADRENALINE_THRESHOLD = 0.20;
-const EMOJI_SCALE = 0.80;
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
@@ -305,10 +368,15 @@ const $ = id => document.getElementById(id);
 const gridEl        = $('grid');
 const gridWrapper   = $('gridWrapper');
 const timerBar      = $('timerBar');
+const timerBarCompact = $('timerBarCompact');
 const scoreDisplay  = $('scoreDisplay');
+const scoreDisplayCompact = $('scoreDisplayCompact');
 const movesDisplay  = $('movesDisplay');
+const movesDisplayCompact = $('movesDisplayCompact');
 const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
+const comboDisplayCompact = $('comboDisplayCompact');
+const comboCountCompact = $('comboCountCompact');
 const floatContainer= $('floatingContainer');
 const xrayBtn       = $('xrayBtn');
 const xrayStatus    = $('xrayStatus');
@@ -356,8 +424,8 @@ function calculateCardSize() {
   const pad = 12;
   const availW = wrapper.clientWidth - pad;
   const availH = wrapper.clientHeight - pad;
-  const maxByW = (availW - (COLS - 1) * gap) / COLS;
-  const maxByH = (availH - (ROWS - 1) * gap) / ROWS;
+  const maxByW = (availW - (GAME_CONFIG.GRID_COLS - 1) * gap) / GAME_CONFIG.GRID_COLS;
+  const maxByH = (availH - (GAME_CONFIG.GRID_ROWS - 1) * gap) / GAME_CONFIG.GRID_ROWS;
   return Math.max(32, Math.min(maxByW, maxByH));
 }
 
@@ -371,10 +439,10 @@ function buildGrid() {
   shuffle(pairs);
 
   const size = calculateCardSize();
-  const emojiSize = Math.round(size * EMOJI_SCALE);
+  const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
 
-  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${size}px)`;
-  gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${size}px)`;
+  gridEl.style.gridTemplateColumns = `repeat(${GAME_CONFIG.GRID_COLS}, ${size}px)`;
+  gridEl.style.gridTemplateRows = `repeat(${GAME_CONFIG.GRID_ROWS}, ${size}px)`;
   gridEl.style.gap = `${GRID_GAP}px`;
   gridEl.style.justifyContent = 'center';
   gridEl.style.alignContent = 'center';
@@ -646,6 +714,7 @@ function addTime(sec) {
 function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
   timerBar.style.width = `${pct}%`;
+  timerBarCompact.style.height = `${pct}%`;
 
   let color;
   let critical = false;
@@ -660,7 +729,9 @@ function updateTimerBar() {
     critical = true;
   }
   timerBar.style.background = color;
+  timerBarCompact.style.background = color;
   timerBar.classList.toggle('timer-critical', critical && S.gameActive);
+  timerBarCompact.classList.toggle('timer-critical', critical && S.gameActive);
 
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
   gameEl.classList.toggle('adrenaline-mode', adrenaline);
@@ -671,15 +742,20 @@ function updateTimerBar() {
 // ══════════════════════════════════════════════════════════════
 function updateScore() {
   scoreDisplay.textContent = S.score;
+  scoreDisplayCompact.textContent = S.score;
   movesDisplay.textContent = S.moves;
+  movesDisplayCompact.textContent = S.moves;
 }
 
 function updateComboDisplay() {
   if (S.combo > 0) {
     comboDisplay.classList.remove('hidden');
+    comboDisplayCompact.classList.remove('hidden');
     comboCount.textContent = `x${S.combo + 1}`;
+    comboCountCompact.textContent = `x${S.combo + 1}`;
   } else {
     comboDisplay.classList.add('hidden');
+    comboDisplayCompact.classList.add('hidden');
   }
 }
 
@@ -826,6 +902,11 @@ function playAgain() {
 // ══════════════════════════════════════════════════════════════
 function initGame() {
   S.gameActive = false;
+
+  // Apply feature flags
+  gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
+  gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
+  gameEl.classList.toggle('cyber-bg', GAME_CONFIG.CYBER_GRID_BG);
 
   buildGrid();
   updateScore();
