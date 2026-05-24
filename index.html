@@ -28,7 +28,13 @@
       position: absolute; inset: 0;
       backface-visibility: hidden; -webkit-backface-visibility: hidden;
       border-radius: 10px; display: flex; align-items: center; justify-content: center;
-      font-size: 1.25rem; will-change: transform;
+      will-change: transform;
+    }
+    .card-front {
+      /* font-size set dynamically in JS at 84% of card size */
+      transform: rotateY(180deg);
+      background: linear-gradient(145deg,#1e293b,#0f172a);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.4);
     }
     .card-back {
       background: linear-gradient(145deg,#1e1b4b,#312e81);
@@ -37,11 +43,6 @@
     .card-back::after {
       content: '?'; font-size: 1rem; font-weight: 800;
       color: rgba(255,255,255,0.15); line-height: 1;
-    }
-    .card-front {
-      transform: rotateY(180deg);
-      background: linear-gradient(145deg,#1e293b,#0f172a);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.4);
     }
     .card.matched .card-front {
       box-shadow: 0 0 20px rgba(34,197,94,0.35), inset 0 0 0 1px rgba(34,197,94,0.3);
@@ -74,11 +75,30 @@
       color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.6), 0 2px 8px rgba(0,0,0,0.5);
       animation: floatUp 0.5s ease-out forwards;
     }
+
+    /* ─── Adrenaline Mode — full-screen pulse ─── */
+    #game.adrenaline-mode::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 45%, rgba(220,38,38,0.18) 100%);
+      pointer-events: none;
+      z-index: 15;
+      animation: adrenalinePulse 1s ease-in-out infinite;
+    }
+    @keyframes adrenalinePulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 1; }
+    }
+
+    /* ─── Timer bar glow ─── */
     @keyframes pulseGlow {
       0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
       50% { box-shadow: 0 0 24px rgba(239,68,68,0.8); }
     }
     .timer-critical { animation: pulseGlow 0.8s ease-in-out infinite; }
+
+    /* ─── Overlay ─── */
     @keyframes bounceIn {
       0% { opacity: 0; transform: scale(0.5); }
       60% { transform: scale(1.05); }
@@ -98,14 +118,13 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
-    /* ─── Responsive emoji sizing ─── */
+    /* ─── Responsive fine-tune ─── */
     @media (max-width:380px) {
-      .card-face { font-size: 1rem; border-radius: 8px; }
       .card-back::after { font-size: 0.85rem; }
+      .card-face { border-radius: 8px; }
       .combo-float { font-size: 1rem; }
     }
     @media (min-width:500px) {
-      .card-face { font-size: 1.5rem; }
       .card-back::after { font-size: 1.2rem; }
     }
   </style>
@@ -136,7 +155,14 @@
 
   <!-- ═══ Grid ═══ -->
   <div id="gridWrapper" class="flex-1 flex items-center justify-center px-3 pb-3 overflow-hidden max-h-[65vh]">
-    <div id="grid" class="grid grid-cols-4 grid-fade-in"></div>
+    <div id="grid" class="grid grid-cols-4 gap-2 grid-fade-in"></div>
+  </div>
+
+  <!-- ═══ X-Ray Power-Up Button ═══ -->
+  <div class="flex-shrink-0 pb-3 flex justify-center">
+    <button id="xrayBtn" class="flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-5 py-2 text-xs font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
+      👁️ X-RAY
+    </button>
   </div>
 
   <!-- ═══ Floating Text Container ═══ -->
@@ -162,6 +188,9 @@
           <div class="text-[10px] text-gray-500 uppercase tracking-wider">Best Combo</div>
         </div>
       </div>
+
+      <!-- Near-miss text -->
+      <div id="nearMissText" class="hidden text-sm text-red-400 font-medium mt-1"></div>
 
       <!-- Rank -->
       <div class="mt-1 bg-white/5 rounded-2xl px-5 py-2.5 border border-white/10 w-full">
@@ -194,10 +223,9 @@ const TOTAL_PAIRS = 12;
 const START_TIME = 60;
 
 const ALL_EMOJIS = [
-  '🔥','💎','🌈','🦄','🚀','🎯','⚡','💫',
-  '🎪','🍕','🦋','🐲','🎨','🍭','🧩','🛸',
-  '🥑','🌮','🍄','🐙','🦩','🌺','🎸','🍀',
-  '🧲','🎰','🪄','🦚','🥷','🧊'
+  '💀','🤡','🧠','🔥','🤫','👑','💅','🤠',
+  '🚀','👽','🥷','🥑','🦄','🌈','🎯','⚡',
+  '🍕','🧩','🛸','🎸','🎪','🐲','🎨','🍭',
 ];
 
 const RANKS = [
@@ -212,8 +240,10 @@ const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
 const COMBO_WINDOW = 2000; // ms
 const MATCH_TIME_BONUS = 2; // seconds
-const GRID_GAP = 6;
+const GRID_GAP = 8; // matches Tailwind gap-2
 const TIMER_INTERVAL = 100; // ms
+const ADRENALINE_THRESHOLD = 0.20; // 20%
+const EMOJI_SCALE = 0.84; // 84% of card size
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
@@ -232,6 +262,7 @@ const S = {
   lastMatchTime: 0,
   timerId: null,
   gameActive: false,
+  xrayUsed: false,
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -246,15 +277,18 @@ const scoreDisplay  = $('scoreDisplay');
 const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
 const floatContainer= $('floatingContainer');
+const xrayBtn       = $('xrayBtn');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
 const finalScore    = $('finalScore');
 const finalCombo    = $('finalCombo');
+const nearMissText  = $('nearMissText');
 const rankDisplay   = $('rankDisplay');
 const shareBtn      = $('shareBtn');
 const shareToast    = $('shareToast');
 const replayBtn     = $('replayBtn');
+const gameEl        = $('game');
 
 // ══════════════════════════════════════════════════════════════
 //  UTILITIES
@@ -303,6 +337,7 @@ function buildGrid() {
   shuffle(pairs);
 
   const size = calculateCardSize();
+  const emojiSize = Math.round(size * EMOJI_SCALE);
 
   gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${size}px)`;
   gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${size}px)`;
@@ -333,6 +368,9 @@ function buildGrid() {
     const front = document.createElement('div');
     front.className = 'card-face card-front';
     front.textContent = emoji;
+    // 84% emoji scale — fills most of the card
+    front.style.fontSize = `${emojiSize}px`;
+    front.style.lineHeight = '1';
 
     inner.appendChild(back);
     inner.appendChild(front);
@@ -463,6 +501,42 @@ function handleMismatch(i1, i2) {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  X-RAY POWER-UP
+// ══════════════════════════════════════════════════════════════
+function activateXray() {
+  if (!S.gameActive || S.xrayUsed) return;
+
+  // Collect all face-down cards (not matched, not currently flipped)
+  const faceDown = [];
+  S.cards.forEach((card) => {
+    if (!card.matched && !card.flipped) {
+      faceDown.push(card);
+    }
+  });
+
+  if (faceDown.length === 0) return;
+
+  // Flip them all face-up visually
+  faceDown.forEach(card => {
+    card.element.classList.add('flipped');
+  });
+
+  // After 500ms flip them back
+  setTimeout(() => {
+    faceDown.forEach(card => {
+      // Only flip back if the card hasn't been matched in the meantime
+      if (!card.matched) {
+        card.element.classList.remove('flipped');
+      }
+    });
+  }, 500);
+
+  // Mark used and disable button
+  S.xrayUsed = true;
+  xrayBtn.classList.add('opacity-40', 'pointer-events-none');
+}
+
+// ══════════════════════════════════════════════════════════════
 //  FLOATING TEXT
 // ══════════════════════════════════════════════════════════════
 function showFloatingText(text, x, y) {
@@ -513,6 +587,7 @@ function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
   timerBar.style.width = `${pct}%`;
 
+  // Timer bar color
   let color;
   let critical = false;
   if (pct > 50) {
@@ -527,6 +602,10 @@ function updateTimerBar() {
   }
   timerBar.style.background = color;
   timerBar.classList.toggle('timer-critical', critical && S.gameActive);
+
+  // Adrenaline mode — full-screen pulse when under 20%
+  const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
+  gameEl.classList.toggle('adrenaline-mode', adrenaline);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -561,11 +640,27 @@ function victory() {
 }
 
 function showOverlay(headerEmoji, titleText) {
+  // Clear adrenaline overlay
+  gameEl.classList.remove('adrenaline-mode');
+
   overlayHeader.textContent = headerEmoji;
   overlayTitle.textContent = titleText;
   finalScore.textContent = S.score;
   finalCombo.textContent = S.maxCombo + 1;
   rankDisplay.textContent = getRank(S.score).title;
+
+  // Near-miss feedback
+  if (headerEmoji === '💀') {
+    const remaining = S.totalPairs - S.matchedPairs;
+    if (remaining > 0) {
+      nearMissText.textContent = `Game Over! You were only ${remaining} pair${remaining !== 1 ? 's' : ''} away from victory!`;
+      nearMissText.classList.remove('hidden');
+    } else {
+      nearMissText.classList.add('hidden');
+    }
+  } else {
+    nearMissText.classList.add('hidden');
+  }
 
   shareToast.classList.add('hidden');
   gameOverlay.classList.remove('hidden');
@@ -630,6 +725,10 @@ function playAgain() {
   S.flippedIndices = [];
   S.isProcessing = false;
   S.gameActive = false;
+  S.xrayUsed = false;
+
+  // Re-enable X-Ray button
+  xrayBtn.classList.remove('opacity-40', 'pointer-events-none');
 
   updateScore();
   updateComboDisplay();
@@ -670,12 +769,14 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Button hooks ───
+xrayBtn.addEventListener('click', activateXray);
 shareBtn.addEventListener('click', shareScore);
 replayBtn.addEventListener('click', playAgain);
 
-// ─── Keyboard shortcut for replay ───
+// ─── Keyboard shortcuts ───
 document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') playAgain();
+  if (e.key === 'x' || e.key === 'X') activateXray();
 });
 
 // ─── Go! ───
