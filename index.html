@@ -3,27 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
-  <title>Emoji Match</title>
-  <!-- Google Fonts: Space Grotesk -->
+  <title>FADE</title>
+  <!-- Google Fonts: Unbounded (headings) + Space Mono (technical data) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <!-- Embedded SVG Favicon (brain emoji) -->
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Embedded SVG Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* ─── Base Reset — Premium Dark Glass ─── */
+    /* ─── Base Reset — Obsidian Matte ─── */
     * { -webkit-tap-highlight-color: transparent; }
     html, body {
       height: 100dvh; overflow: hidden; margin: 0; padding: 0;
       background: #09090b;
-      color: #f1f5f9;
-      font-family: 'Space Grotesk', sans-serif;
+      color: #f4f4f5;
+      font-family: 'Unbounded', sans-serif;
       user-select: none; -webkit-user-select: none;
       touch-action: manipulation;
     }
 
-    /* ─── Card Flip 3D ─── */
+    /* ─── Dot-Matrix Background ─── */
+    #game.dot-bg::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 16px 16px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Keep game content above the dots */
+    #game.dot-bg > * { position: relative; z-index: 1; }
+    #game.dot-bg #floatingContainer { z-index: 30; }
+    #game.dot-bg #gameOverOverlay { z-index: 50; }
+
+    /* ─── Card Flip 3D — Industrial Sharp ─── */
     .card { perspective: 800px; cursor: pointer; }
     .card-inner {
       position: relative; width: 100%; height: 100%;
@@ -34,27 +49,36 @@
     .card-face {
       position: absolute; inset: 0;
       backface-visibility: hidden; -webkit-backface-visibility: hidden;
-      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
       will-change: transform;
     }
     .card-front {
       transform: rotateY(180deg);
-      background: linear-gradient(145deg,#1e293b,#0f172a);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.4);
+      background: #18181b;
+      border: 1px solid #27272a;
     }
     .card-back {
-      background: linear-gradient(145deg,#1e1b4b,#312e81);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.4);
+      background: #18181b;
+      border: 1px solid #27272a;
     }
     .card-back::after {
-      content: '?'; font-size: 1rem; font-weight: 800;
-      color: rgba(255,255,255,0.15); line-height: 1;
+      content: '';
+      display: block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
     }
     .card.matched .card-front {
-      box-shadow: 0 0 20px rgba(34,197,94,0.35), inset 0 0 0 1px rgba(34,197,94,0.3);
+      border-color: rgba(34,197,94,0.25);
     }
     .card.matched { pointer-events: none; }
     .card.mismatch .card-inner { animation: shake 0.15s ease; }
+
+    /* ─── Flip card face-up glow ─── */
+    .card.flipped .card-front {
+      border-color: rgba(255,255,255,0.12);
+    }
 
     /* ─── Animations ─── */
     @keyframes shake {
@@ -70,6 +94,7 @@
       100% { transform: rotateY(180deg) scale(1); }
     }
     .card.matched .card-inner { animation: matchPop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+
     @keyframes floatUp {
       0% { opacity: 1; transform: translateY(0) scale(0.8); }
       30% { opacity: 1; transform: translateY(-8px) scale(1.15); }
@@ -77,8 +102,9 @@
     }
     .combo-float {
       position: fixed; pointer-events: none; z-index: 200;
-      font-size: 1.25rem; font-weight: 800;
-      color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.6), 0 2px 8px rgba(0,0,0,0.5);
+      font-size: 1rem; font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.5);
       animation: floatUp 0.5s ease-out forwards;
     }
 
@@ -93,7 +119,7 @@
       animation: confettiBurst 0.7s ease-out forwards;
     }
 
-    /* ─── Adrenaline Mode — full-screen pulse ─── */
+    /* ─── Adrenaline Mode ─── */
     #game.adrenaline-mode::after {
       content: '';
       position: fixed;
@@ -110,8 +136,8 @@
 
     /* ─── Timer bar glow ─── */
     @keyframes pulseGlow {
-      0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
-      50% { box-shadow: 0 0 24px rgba(239,68,68,0.8); }
+      0%,100% { box-shadow: 0 0 6px rgba(239,68,68,0.3); }
+      50% { box-shadow: 0 0 16px rgba(239,68,68,0.6); }
     }
     .timer-critical { animation: pulseGlow 0.8s ease-in-out infinite; }
 
@@ -123,8 +149,8 @@
     }
     .overlay-content { animation: bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes pulseBtn {
-      0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
-      50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(99,102,241,0); }
+      0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(255,255,255,0); }
     }
     .btn-pulse { animation: pulseBtn 1.8s ease-in-out infinite; }
 
@@ -135,47 +161,27 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
-    /* ─── Responsive fine-tune ─── */
-    @media (max-width:380px) {
-      .card-back::after { font-size: 0.85rem; }
-      .card-face { border-radius: 8px; }
-      .combo-float { font-size: 1rem; }
-    }
-    @media (min-width:500px) {
-      .card-back::after { font-size: 1.2rem; }
-    }
-
     /* ─── Feature Flag: COMPACT_HUD ─── */
     .compact-mode #hudFull { display: none; }
     #game:not(.compact-mode) #hudCompact { display: none; }
-    #hudFull, #hudCompact { transition: all 0.3s ease; }
 
     /* ─── Feature Flag: VANISH_MATCHES ─── */
     .vanish-mode .card.matched {
       opacity: 0 !important;
-      transition: opacity 0.45s ease !important;
+      transition: opacity 0.4s ease !important;
       pointer-events: none !important;
     }
     .vanish-mode .card.matched .card-front {
-      box-shadow: none !important;
+      border-color: transparent !important;
     }
 
-    /* ─── Feature Flag: CYBER_GRID_BG ─── */
-    .cyber-bg::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(113,113,122,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(113,113,122,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-      z-index: 0;
+    /* ─── Responsive fine-tune ─── */
+    @media (max-width:380px) {
+      .card-face { border-radius: 4px; }
+      .card-back::after { width: 4px; height: 4px; }
     }
-
-    /* ─── Timer bar: hyper-neon glow ─── */
-    #timerBarTop {
-      box-shadow: 0 0 6px rgba(34,197,94,0.3), 0 0 12px rgba(34,197,94,0.08);
+    @media (min-width:500px) {
+      .card-back::after { width: 8px; height: 8px; }
     }
   </style>
 </head>
@@ -183,116 +189,105 @@
 
 <div id="game" class="h-full w-full flex flex-col overflow-hidden">
 
-  <!-- ═══ Timer Bar — razor-thin hyper-neon glow ═══ -->
+  <!-- ═══ Timer Bar — electric cyan line ═══ -->
   <div class="flex-shrink-0 w-full" style="height:3px;">
-    <div id="timerBarTop" class="h-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
+    <div id="timerBarTop" class="h-full transition-all duration-150 ease-linear" style="width:100%;background:#22d3ee"></div>
   </div>
 
   <!-- ═══ Bento Box HUD (COMPACT_HUD) ═══ -->
   <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3">
-    <div class="grid grid-cols-5 gap-2">
-      <!-- Left: FADE brand logo (span 2 cols) -->
-      <div class="col-span-2 bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center">
-        <span class="font-black tracking-tighter text-2xl sm:text-3xl bg-gradient-to-r from-white via-zinc-400 to-zinc-600 bg-clip-text text-transparent">FADE</span>
+    <div class="grid grid-cols-5 gap-1.5">
+      <!-- Left: FADE brand logo -->
+      <div class="col-span-2 bg-zinc-900/30 border border-zinc-800/80 rounded-md p-2.5 flex items-center justify-center">
+        <span class="font-black tracking-tighter text-4xl text-zinc-100 leading-none">FADE</span>
       </div>
-      <!-- Right: stats + combo (span 3 cols) -->
-      <div class="col-span-3 bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center justify-between">
-        <div class="flex items-center gap-2 text-xs">
-          <span>🏆</span>
-          <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-          <span class="text-zinc-600">·</span>
-          <span class="text-[10px] text-zinc-400">🕹️</span>
-          <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+      <!-- Right: stats + combo -->
+      <div class="col-span-3 bg-zinc-900/30 border border-zinc-800/80 rounded-md px-2.5 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-1.5 font-mono text-[11px]">
+          <span class="text-base leading-none">🏆</span>
+          <span id="scoreDisplayCompact" class="font-bold text-zinc-100">0</span>
+          <span class="text-zinc-700">/</span>
+          <span class="text-[10px] text-zinc-500">🕹️</span>
+          <span id="movesDisplayCompact" class="font-bold text-zinc-100">0</span>
         </div>
-        <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
+        <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-bold font-mono text-xs">
           <span>🔥</span><span id="comboCountCompact">x0</span>
         </span>
       </div>
     </div>
   </div>
 
-  <!-- ═══ Full Header (hidden in COMPACT_HUD, fallback layout) ═══ -->
+  <!-- ═══ Full Header (fallback, hidden in COMPACT_HUD) ═══ -->
   <div id="hudFull" class="flex-shrink-0 px-4 pt-3 pb-2">
-    <span class="font-black tracking-tighter text-3xl bg-gradient-to-r from-white via-zinc-400 to-zinc-600 bg-clip-text text-transparent">FADE</span>
-    <div class="flex items-center justify-between mt-1.5 text-xs">
+    <span class="font-black tracking-tighter text-4xl text-zinc-100">FADE</span>
+    <div class="flex items-center justify-between mt-1 font-mono text-xs">
       <div class="flex items-center gap-2">
-        <span class="text-base">🏆</span>
-        <span id="scoreDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-        <span class="text-zinc-600">|</span>
-        <span class="text-[10px] text-zinc-400 uppercase tracking-wider">🕹️</span>
-        <span id="movesDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        <span>🏆</span>
+        <span id="scoreDisplay" class="font-bold text-zinc-100">0</span>
+        <span class="text-zinc-600">/</span>
+        <span class="text-zinc-500">🕹️</span>
+        <span id="movesDisplay" class="font-bold text-zinc-100">0</span>
       </div>
       <div class="flex items-center gap-2">
-        <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
-          <span>🔥</span><span id="comboCount">x0</span>
-        </span>
-        <span id="xrayStatus" class="text-[10px] text-zinc-500 opacity-40">👁️</span>
+        <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">🔥<span id="comboCount">x0</span></span>
+        <span id="xrayStatus" class="text-zinc-600 opacity-40 text-[10px]">👁️</span>
       </div>
     </div>
   </div>
 
   <!-- ═══ Grid ═══ -->
-  <div id="gridWrapper" class="flex-1 min-h-0 flex items-center justify-center px-3 pb-2 overflow-hidden">
-    <div id="grid" class="grid grid-cols-4 gap-2 grid-fade-in"></div>
+  <div id="gridWrapper" class="flex-1 min-h-0 flex items-center justify-center px-3 pb-1 overflow-hidden" style="max-height:66vh">
+    <div id="grid" class="grid grid-cols-4 gap-1.5 grid-fade-in"></div>
   </div>
 
-  <!-- ═══ X-Ray Power-Up (Glass container) ═══ -->
-  <div class="flex-shrink-0 pb-2 px-3 flex justify-center">
-    <div class="bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center gap-2">
-      <button id="xrayBtn" class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-white transition-all border border-white/10">
+  <!-- ═══ X-Ray Power-Up ═══ -->
+  <div class="flex-shrink-0 pb-1.5 px-3 flex justify-center">
+    <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
+      <button id="xrayBtn" class="font-mono font-bold text-[10px] text-zinc-100 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-sm px-3 py-1.5 transition-colors border border-zinc-700/60">
         👁️ X-RAY
       </button>
-      <span class="text-[10px] text-zinc-500 font-medium">Peek once</span>
+      <span class="font-mono text-[9px] text-zinc-600">peek once</span>
     </div>
   </div>
 
   <!-- ═══ Floating Text Container ═══ -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
-  <!-- ═══ Game Over Overlay (Glass Modal) ═══ -->
+  <!-- ═══ Game Over Overlay ═══ -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-    <div class="overlay-content flex flex-col items-center gap-4 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-white/5 shadow-2xl rounded-2xl px-6 py-7">
-      <!-- Header -->
-      <div id="overlayHeader" class="text-4xl mb-1">💀</div>
-      <div id="overlayTitle" class="text-2xl font-black tracking-tight text-white">Game Over</div>
+    <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 shadow-2xl rounded-md px-6 py-7">
+      <div id="overlayHeader" class="text-3xl mb-1">💀</div>
+      <div id="overlayTitle" class="text-xl font-black tracking-tight text-zinc-100">Game Over</div>
 
-      <!-- Score -->
       <div class="mt-1 text-center">
-        <div class="text-5xl font-black tabular-nums text-white"><span id="finalScore">0</span></div>
-        <div class="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5 font-medium">Score</div>
+        <div class="text-4xl font-black tabular-nums text-zinc-100 font-mono"><span id="finalScore">0</span></div>
+        <div class="text-[9px] text-zinc-600 uppercase tracking-widest mt-0.5 font-mono">Score</div>
       </div>
 
-      <!-- Stats row -->
-      <div class="flex items-center gap-6 mt-1 text-sm">
+      <div class="flex items-center gap-6 mt-1 font-mono text-xs">
         <div class="text-center">
-          <div class="text-lg font-extrabold tracking-tight text-orange-400"><span id="finalCombo">0</span>x</div>
-          <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Best Combo</div>
+          <div class="text-base font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
+          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Best Combo</div>
         </div>
         <div class="text-center">
-          <div class="text-lg font-extrabold tracking-tight text-sky-400"><span id="finalMoves">0</span></div>
-          <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Moves</div>
+          <div class="text-base font-bold text-cyan-400"><span id="finalMoves">0</span></div>
+          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Moves</div>
         </div>
       </div>
 
-      <!-- Benchmark -->
-      <div id="benchmarkDisplay" class="text-xs mt-1 font-medium"></div>
+      <div id="benchmarkDisplay" class="text-[11px] mt-0.5 font-mono"></div>
+      <div id="nearMissText" class="hidden text-xs text-red-400 font-mono mt-0.5"></div>
 
-      <!-- Near-miss text -->
-      <div id="nearMissText" class="hidden text-sm text-red-400 font-semibold mt-1"></div>
-
-      <!-- Rank -->
-      <div class="mt-1 bg-white/5 backdrop-blur-sm rounded-2xl px-5 py-2.5 border border-white/10 w-full">
-        <div class="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5 font-medium">Rank</div>
-        <div id="rankDisplay" class="text-lg font-extrabold tracking-tight text-amber-400">—</div>
+      <div class="mt-0.5 bg-zinc-900/30 border border-zinc-800/80 rounded-md px-4 py-2 w-full">
+        <div class="text-[9px] text-zinc-600 uppercase tracking-widest mb-0.5 font-mono">Rank</div>
+        <div id="rankDisplay" class="text-sm font-bold text-amber-400 font-mono">—</div>
       </div>
 
-      <!-- Share -->
-      <button id="shareBtn" class="w-full mt-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 text-sm font-bold transition-colors border border-white/10">
-        <span>📤</span> <span>Brag &amp; Share</span>
+      <button id="shareBtn" class="w-full mt-0.5 font-mono font-bold text-[11px] flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-md px-4 py-2.5 text-zinc-100 transition-colors border border-zinc-700/60">
+        <span>📤</span> Brag &amp; Share
       </button>
 
-      <!-- Play Again -->
-      <button id="replayBtn" class="btn-pulse w-full mt-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all border border-white/10 shadow-lg">
+      <button id="replayBtn" class="btn-pulse w-full mt-0.5 font-mono font-bold text-[11px] bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-md px-4 py-2.5 text-zinc-100 transition-colors border border-zinc-700/60">
         🔄 Play Again
       </button>
     </div>
@@ -302,14 +297,14 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  FEATURE FLAGS — toggle on/off from here
+//  FEATURE FLAGS
 // ══════════════════════════════════════════════════════════════
 const GAME_CONFIG = {
-  COMPACT_HUD: true,           // True = Bento Box single-row HUD layout
-  VANISH_MATCHES: true,        // True = Discovered pairs transition to 0% opacity
-  ACCELERATE_TIMER: true,      // True = Drain rate speeds up 5% per cleared pair
-  CYBER_GRID_BG: true,         // True = Render pure CSS background matrix
-  EMOJI_SCALE_PERCENT: 80,     // Emojis strictly fill 80% of inner card area
+  COMPACT_HUD: true,
+  VANISH_MATCHES: true,
+  ACCELERATE_TIMER: true,
+  CYBER_GRID_BG: true,
+  EMOJI_SCALE_PERCENT: 80,
   GRID_ROWS: 6,
   GRID_COLS: 4,
 };
@@ -330,7 +325,7 @@ const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 const BASE_SCORE = 100;
 const COMBO_WINDOW = 2000;
 const MATCH_TIME_BONUS = 2;
-const GRID_GAP = 8;
+const GRID_GAP = 6;
 const TIMER_INTERVAL = 100;
 const ADRENALINE_THRESHOLD = 0.20;
 
@@ -404,10 +399,10 @@ function getEmojisForLevel(count) {
 }
 
 function getSpiteRank(remaining) {
-  if (remaining >= 7) return { title: 'Total Noob', subtitle: 'Brain Status: Cooked 🍳' };
-  if (remaining >= 4) return { title: 'Average Human', subtitle: 'Getting Warm... 🌶️' };
-  if (remaining >= 1) return { title: 'Certified Gigabrain', subtitle: 'SO CLOSE! 😫' };
-  return { title: 'Absolute Legend', subtitle: 'EMOJI DEITY 👑' };
+  if (remaining >= 7) return { title: 'TOTAL NOOB', subtitle: 'Brain Status: Cooked 🍳' };
+  if (remaining >= 4) return { title: 'AVERAGE HUMAN', subtitle: 'Getting Warm... 🌶️' };
+  if (remaining >= 1) return { title: 'CERTIFIED GIGABRAIN', subtitle: 'SO CLOSE! 😫' };
+  return { title: 'ABSOLUTE LEGEND', subtitle: 'EMOJI DEITY 👑' };
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -421,7 +416,7 @@ function calculateCardSize() {
   const availH = wrapper.clientHeight - pad;
   const maxByW = (availW - (GAME_CONFIG.GRID_COLS - 1) * gap) / GAME_CONFIG.GRID_COLS;
   const maxByH = (availH - (GAME_CONFIG.GRID_ROWS - 1) * gap) / GAME_CONFIG.GRID_ROWS;
-  return Math.max(32, Math.min(maxByW, maxByH));
+  return Math.max(28, Math.min(maxByW, maxByH));
 }
 
 function buildGrid() {
@@ -509,6 +504,7 @@ function onCardClick(index) {
     S.isProcessing = true;
     S.moves++;
     movesDisplay.textContent = S.moves;
+    movesDisplayCompact.textContent = S.moves;
     setTimeout(checkMatch, 400);
   }
 }
@@ -554,7 +550,7 @@ function handleMatch(i1, i2) {
 
   const midX = (c1.element.getBoundingClientRect().left + c2.element.getBoundingClientRect().right) / 2;
   const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 14;
-  const label = S.combo >= 1 ? `+${points} Combo x${multiplier}!` : `+${points}`;
+  const label = S.combo >= 1 ? `+${points}x${multiplier}` : `+${points}`;
   showFloatingText(label, midX, midY);
 
   if (S.combo >= 3) {
@@ -615,15 +611,11 @@ function activateXray() {
 
   if (faceDown.length === 0) return;
 
-  faceDown.forEach(card => {
-    card.element.classList.add('flipped');
-  });
+  faceDown.forEach(card => { card.element.classList.add('flipped'); });
 
   setTimeout(() => {
     faceDown.forEach(card => {
-      if (!card.matched) {
-        card.element.classList.remove('flipped');
-      }
+      if (!card.matched) card.element.classList.remove('flipped');
     });
   }, 500);
 
@@ -651,22 +643,20 @@ function showFloatingText(text, x, y) {
 //  CONFETTI BURST
 // ══════════════════════════════════════════════════════════════
 function spawnConfetti(x, y) {
-  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff','#ff9f43','#00d2d3','#a29bfe'];
-  for (let i = 0; i < 24; i++) {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff','#ff9f43'];
+  for (let i = 0; i < 20; i++) {
     const el = document.createElement('div');
     const color = colors[Math.floor(Math.random() * colors.length)];
     const angle = Math.random() * Math.PI * 2;
-    const dist = 30 + Math.random() * 70;
-    const size = 4 + Math.random() * 6;
-    const dx = Math.cos(angle) * dist;
-    const dy = Math.sin(angle) * dist;
+    const dist = 25 + Math.random() * 60;
+    const size = 3 + Math.random() * 5;
     el.className = 'confetti-piece';
     el.style.cssText = `
       left:${x}px; top:${y}px;
       width:${size}px; height:${size}px;
       background:${color};
-      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
-      --dx:${dx}px; --dy:${dy}px;
+      border-radius:${Math.random() > 0.5 ? '50%' : '1px'};
+      --dx:${Math.cos(angle) * dist}px; --dy:${Math.sin(angle) * dist}px;
     `;
     floatContainer.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
@@ -682,7 +672,6 @@ function startTimer() {
   S.maxTime = START_TIME;
   updateTimerBar();
   S.timerId = setInterval(() => {
-    // ACCELERATE_TIMER: drain speeds up 5% per cleared pair
     const drainMultiplier = GAME_CONFIG.ACCELERATE_TIMER ? 1 + S.matchedPairs * 0.05 : 1;
     S.timeLeft -= (TIMER_INTERVAL / 1000) * drainMultiplier;
     if (S.timeLeft <= 0) {
@@ -696,10 +685,7 @@ function startTimer() {
 }
 
 function stopTimer() {
-  if (S.timerId) {
-    clearInterval(S.timerId);
-    S.timerId = null;
-  }
+  if (S.timerId) { clearInterval(S.timerId); S.timerId = null; }
 }
 
 function addTime(sec) {
@@ -712,26 +698,10 @@ function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
   timerBarTop.style.width = `${pct}%`;
 
-  let color;
-  let glow;
-  let critical = false;
-  if (pct > 50) {
-    color = '#22c55e';
-    glow = 'rgba(34,197,94,';
-  } else if (pct > 25) {
-    color = '#eab308';
-    glow = 'rgba(234,179,8,';
-  } else if (pct > 10) {
-    color = '#ef4444';
-    glow = 'rgba(239,68,68,';
-  } else {
-    color = '#ef4444';
-    glow = 'rgba(239,68,68,';
-    critical = true;
-  }
+  // Electric cyan → amber warning below 25%
+  const color = pct <= 25 ? '#f59e0b' : '#22d3ee';
   timerBarTop.style.background = color;
-  timerBarTop.style.boxShadow = `${glow}0.35) 0 0 6px, ${glow}0.10) 0 0 14px`;
-  timerBarTop.classList.toggle('timer-critical', critical && S.gameActive);
+  timerBarTop.classList.toggle('timer-critical', pct <= 10 && S.gameActive);
 
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
   gameEl.classList.toggle('adrenaline-mode', adrenaline);
@@ -748,15 +718,11 @@ function updateScore() {
 }
 
 function updateComboDisplay() {
-  if (S.combo > 0) {
-    comboDisplay.classList.remove('hidden');
-    comboDisplayCompact.classList.remove('hidden');
-    comboCount.textContent = `x${S.combo + 1}`;
-    comboCountCompact.textContent = `x${S.combo + 1}`;
-  } else {
-    comboDisplay.classList.add('hidden');
-    comboDisplayCompact.classList.add('hidden');
-  }
+  const show = S.combo > 0;
+  comboDisplay.classList.toggle('hidden', !show);
+  comboDisplayCompact.classList.toggle('hidden', !show);
+  comboCount.textContent = `x${S.combo + 1}`;
+  comboCountCompact.textContent = `x${S.combo + 1}`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -786,24 +752,18 @@ function showOverlay(headerEmoji, titleText) {
   const avg = 32;
   const moves = S.moves;
   if (moves < avg) {
-    benchmarkDisp.innerHTML = `Your Moves: <span class="text-emerald-400 font-bold">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class="text-emerald-400 font-bold">Brain Status: Elite 🧠</span>`;
+    benchmarkDisp.innerHTML = `<span class="text-emerald-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span> · <span class="text-emerald-400">Elite 🧠</span>`;
   } else if (moves === avg) {
-    benchmarkDisp.innerHTML = `Your Moves: <span class="text-amber-400 font-bold">${moves}</span> vs. Average Human: ${avg} &nbsp;·&nbsp; <span class="text-amber-400">Right on average</span>`;
+    benchmarkDisp.innerHTML = `<span class="text-amber-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span> · <span class="text-amber-400">Average</span>`;
   } else {
-    benchmarkDisp.innerHTML = `Your Moves: <span class="text-red-400 font-bold">${moves}</span> vs. Average Human: ${avg}`;
+    benchmarkDisp.innerHTML = `<span class="text-red-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span>`;
   }
 
   const remaining = S.totalPairs - S.matchedPairs;
   const spite = getSpiteRank(remaining);
   rankDisplay.textContent = spite.title;
-
-  if (headerEmoji === '💀' && remaining > 0) {
-    nearMissText.textContent = spite.subtitle;
-    nearMissText.classList.remove('hidden');
-  } else {
-    nearMissText.textContent = spite.subtitle;
-    nearMissText.classList.remove('hidden');
-  }
+  nearMissText.textContent = spite.subtitle;
+  nearMissText.classList.remove('hidden');
 
   gameOverlay.classList.remove('hidden');
 }
@@ -822,21 +782,17 @@ function shareScore() {
   const visualMap = mapRows.join('\n');
 
   const text = [
-    `🧠 EMOJI MATCH: 24-CARD CHALLENGE 🧠`,
-    `⏱️ Time Left: ${Math.floor(S.timeLeft)}s | 🕹️ Moves: ${S.moves} (Avg: 32)`,
-    `🔥 Max Combo: x${S.maxCombo + 1} | 👑 Rank: ${spite.title}`,
+    `🧠 FADE: 24-CARD CHALLENGE 🧠`,
+    `⏱️ ${Math.floor(S.timeLeft)}s | 🕹️ ${S.moves} (avg 32)`,
+    `🔥 x${S.maxCombo + 1} | 👑 ${spite.title}`,
     ``,
     visualMap,
     ``,
-    `Can you beat my brain? ⚡ ${GAME_URL}`,
+    `⚡ ${GAME_URL}`,
   ].join('\n');
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      showShareCopied();
-    }).catch(() => {
-      fallbackCopy(text);
-    });
+    navigator.clipboard.writeText(text).then(() => showShareCopied()).catch(() => fallbackCopy(text));
   } else {
     fallbackCopy(text);
   }
@@ -845,25 +801,21 @@ function shareScore() {
 function fallbackCopy(text) {
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta);
   ta.select();
-  try {
-    document.execCommand('copy');
-    showShareCopied();
-  } catch (e) {
-    alert('Tap to copy:\n\n' + text);
-  }
+  try { document.execCommand('copy'); showShareCopied(); } catch (e) { alert('Tap to copy:\n\n' + text); }
   document.body.removeChild(ta);
 }
 
 function showShareCopied() {
   shareBtn.innerHTML = 'Copied! 📋';
-  shareBtn.classList.add('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
+  shareBtn.classList.add('bg-emerald-800', 'border-emerald-700');
+  shareBtn.classList.remove('bg-zinc-800', 'border-zinc-700/60');
   setTimeout(() => {
-    shareBtn.innerHTML = '<span>📤</span> <span>Brag &amp; Share</span>';
-    shareBtn.classList.remove('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
+    shareBtn.innerHTML = '<span>📤</span> Brag &amp; Share';
+    shareBtn.classList.remove('bg-emerald-800', 'border-emerald-700');
+    shareBtn.classList.add('bg-zinc-800', 'border-zinc-700/60');
   }, 1500);
 }
 
@@ -874,23 +826,17 @@ function playAgain() {
   stopTimer();
   gameOverlay.classList.add('hidden');
 
-  S.score = 0;
-  S.combo = 0;
-  S.maxCombo = 0;
-  S.moves = 0;
-  S.flipHistory = [];
-  S.matchedPairs = 0;
-  S.flippedIndices = [];
-  S.isProcessing = false;
-  S.gameActive = false;
-  S.xrayUsed = false;
+  S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
+  S.flipHistory = []; S.matchedPairs = 0; S.flippedIndices = [];
+  S.isProcessing = false; S.gameActive = false; S.xrayUsed = false;
 
   xrayBtn.classList.remove('opacity-40', 'pointer-events-none');
   xrayStatus.classList.add('opacity-40');
   xrayStatus.textContent = '👁️';
 
-  shareBtn.innerHTML = '<span>📤</span> <span>Brag &amp; Share</span>';
-  shareBtn.classList.remove('bg-emerald-600/30', 'border-emerald-500/40', 'text-emerald-300');
+  shareBtn.innerHTML = '<span>📤</span> Brag &amp; Share';
+  shareBtn.classList.remove('bg-emerald-800', 'border-emerald-700');
+  shareBtn.classList.add('bg-zinc-800', 'border-zinc-700/60');
 
   updateScore();
   updateComboDisplay();
@@ -906,7 +852,7 @@ function initGame() {
   // Apply feature flags
   gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
   gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
-  gameEl.classList.toggle('cyber-bg', GAME_CONFIG.CYBER_GRID_BG);
+  gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
 
   buildGrid();
   updateScore();
