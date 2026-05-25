@@ -178,13 +178,13 @@
 
 <div id="game" class="h-full w-full flex flex-col overflow-hidden">
 
-  <!-- ═══ Full Header Panel (hidden in COMPACT_HUD) ═══ -->
-  <div id="hudFull" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/60 backdrop-blur-md border border-white/10 shadow-2xl px-4 pt-3 pb-2">
-    <!-- Timer bar inside the glass panel -->
-    <div class="w-full h-[5px] bg-gray-800/40 rounded-full overflow-hidden mb-3">
-      <div id="timerBar" class="h-full rounded-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
-    </div>
+  <!-- ═══ Timer Bar — flush top, full-width, no radius ═══ -->
+  <div class="flex-shrink-0 w-full" style="height:3px;">
+    <div id="timerBarTop" class="h-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
+  </div>
 
+  <!-- ═══ Full Header (hidden in COMPACT_HUD) ═══ -->
+  <div id="hudFull" class="flex-shrink-0 px-4 pt-3 pb-2">
     <!-- Logo row -->
     <div class="flex items-center justify-between">
       <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-xl sm:text-2xl">EMOJI MATCH</span>
@@ -196,7 +196,7 @@
     </div>
 
     <!-- Stats row -->
-    <div class="flex items-center justify-between mt-1 text-xs">
+    <div class="flex items-center justify-between mt-1.5 text-xs">
       <div class="flex items-center gap-2">
         <span class="text-base">🏆</span>
         <span id="scoreDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
@@ -211,20 +211,15 @@
   </div>
 
   <!-- ═══ Compact HUD (shown in COMPACT_HUD mode) ═══ -->
-  <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-white/10 shadow-2xl px-3 py-2.5">
+  <div id="hudCompact" class="flex-shrink-0 px-3 pt-2.5 pb-2">
     <div class="flex items-center justify-between gap-1">
-      <!-- Left: timer bar vertical strip + stats -->
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <div class="w-[3px] h-7 bg-gray-800/40 rounded-full overflow-hidden flex-shrink-0">
-          <div id="timerBarCompact" class="w-full rounded-full transition-all duration-150 ease-linear" style="height:100%;background:#22c55e"></div>
-        </div>
-        <div class="flex items-center gap-1.5 min-w-0 text-xs">
-          <span>🏆</span>
-          <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-          <span class="text-gray-600">·</span>
-          <span class="text-[10px] text-gray-400">🕹️</span>
-          <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-        </div>
+      <!-- Left: stats -->
+      <div class="flex items-center gap-1.5 min-w-0 text-xs">
+        <span>🏆</span>
+        <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        <span class="text-gray-600">·</span>
+        <span class="text-[10px] text-gray-400">🕹️</span>
+        <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
       </div>
       <!-- Right: logo + combo -->
       <div class="flex items-center gap-2 flex-shrink-0">
@@ -367,8 +362,7 @@ const $ = id => document.getElementById(id);
 
 const gridEl        = $('grid');
 const gridWrapper   = $('gridWrapper');
-const timerBar      = $('timerBar');
-const timerBarCompact = $('timerBarCompact');
+const timerBarTop   = $('timerBarTop');
 const scoreDisplay  = $('scoreDisplay');
 const scoreDisplayCompact = $('scoreDisplayCompact');
 const movesDisplay  = $('movesDisplay');
@@ -713,8 +707,7 @@ function addTime(sec) {
 
 function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
-  timerBar.style.width = `${pct}%`;
-  timerBarCompact.style.height = `${pct}%`;
+  timerBarTop.style.width = `${pct}%`;
 
   let color;
   let critical = false;
@@ -728,10 +721,8 @@ function updateTimerBar() {
     color = '#ef4444';
     critical = true;
   }
-  timerBar.style.background = color;
-  timerBarCompact.style.background = color;
-  timerBar.classList.toggle('timer-critical', critical && S.gameActive);
-  timerBarCompact.classList.toggle('timer-critical', critical && S.gameActive);
+  timerBarTop.style.background = color;
+  timerBarTop.classList.toggle('timer-critical', critical && S.gameActive);
 
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
   gameEl.classList.toggle('adrenaline-mode', adrenaline);
