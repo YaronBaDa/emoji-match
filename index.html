@@ -16,7 +16,7 @@
     * { -webkit-tap-highlight-color: transparent; }
     html, body {
       height: 100dvh; overflow: hidden; margin: 0; padding: 0;
-      background: radial-gradient(ellipse at top, #1e293b, #0f172a, #09090b);
+      background: #09090b;
       color: #f1f5f9;
       font-family: 'Space Grotesk', sans-serif;
       user-select: none; -webkit-user-select: none;
@@ -166,11 +166,16 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
-      background-size: 40px 40px;
+        linear-gradient(rgba(113,113,122,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(113,113,122,0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
       pointer-events: none;
       z-index: 0;
+    }
+
+    /* ─── Timer bar: hyper-neon glow ─── */
+    #timerBarTop {
+      box-shadow: 0 0 6px rgba(34,197,94,0.3), 0 0 12px rgba(34,197,94,0.08);
     }
   </style>
 </head>
@@ -178,55 +183,50 @@
 
 <div id="game" class="h-full w-full flex flex-col overflow-hidden">
 
-  <!-- ═══ Timer Bar — flush top, full-width, no radius ═══ -->
+  <!-- ═══ Timer Bar — razor-thin hyper-neon glow ═══ -->
   <div class="flex-shrink-0 w-full" style="height:3px;">
     <div id="timerBarTop" class="h-full transition-all duration-150 ease-linear" style="width:100%;background:#22c55e"></div>
   </div>
 
-  <!-- ═══ Full Header (hidden in COMPACT_HUD) ═══ -->
-  <div id="hudFull" class="flex-shrink-0 px-4 pt-3 pb-2">
-    <!-- Logo row -->
-    <div class="flex items-center justify-between">
-      <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-xl sm:text-2xl">EMOJI MATCH</span>
-
-      <!-- Combo (appears when active) -->
-      <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
-        <span>🔥</span><span id="comboCount">x0</span>
-      </span>
-    </div>
-
-    <!-- Stats row -->
-    <div class="flex items-center justify-between mt-1.5 text-xs">
-      <div class="flex items-center gap-2">
-        <span class="text-base">🏆</span>
-        <span id="scoreDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-        <span class="text-gray-700">|</span>
-        <span class="text-[10px] text-gray-500 uppercase tracking-wider">🕹️</span>
-        <span id="movesDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+  <!-- ═══ Bento Box HUD (COMPACT_HUD) ═══ -->
+  <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3">
+    <div class="grid grid-cols-5 gap-2">
+      <!-- Left: FADE brand logo (span 2 cols) -->
+      <div class="col-span-2 bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center">
+        <span class="font-black tracking-tighter text-2xl sm:text-3xl bg-gradient-to-r from-white via-zinc-400 to-zinc-600 bg-clip-text text-transparent">FADE</span>
       </div>
-      <div class="flex items-center gap-1 text-[10px] text-gray-500 uppercase tracking-wider">
-        <span id="xrayStatus" class="opacity-40">👁️</span>
+      <!-- Right: stats + combo (span 3 cols) -->
+      <div class="col-span-3 bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs">
+          <span>🏆</span>
+          <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+          <span class="text-zinc-600">·</span>
+          <span class="text-[10px] text-zinc-400">🕹️</span>
+          <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        </div>
+        <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
+          <span>🔥</span><span id="comboCountCompact">x0</span>
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- ═══ Compact HUD (shown in COMPACT_HUD mode) ═══ -->
-  <div id="hudCompact" class="flex-shrink-0 px-3 pt-2.5 pb-2">
-    <div class="flex items-center justify-between gap-1">
-      <!-- Left: stats -->
-      <div class="flex items-center gap-1.5 min-w-0 text-xs">
-        <span>🏆</span>
-        <span id="scoreDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
-        <span class="text-gray-600">·</span>
-        <span class="text-[10px] text-gray-400">🕹️</span>
-        <span id="movesDisplayCompact" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+  <!-- ═══ Full Header (hidden in COMPACT_HUD, fallback layout) ═══ -->
+  <div id="hudFull" class="flex-shrink-0 px-4 pt-3 pb-2">
+    <span class="font-black tracking-tighter text-3xl bg-gradient-to-r from-white via-zinc-400 to-zinc-600 bg-clip-text text-transparent">FADE</span>
+    <div class="flex items-center justify-between mt-1.5 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🏆</span>
+        <span id="scoreDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
+        <span class="text-zinc-600">|</span>
+        <span class="text-[10px] text-zinc-400 uppercase tracking-wider">🕹️</span>
+        <span id="movesDisplay" class="font-extrabold tracking-tight text-white tabular-nums text-sm">0</span>
       </div>
-      <!-- Right: logo + combo -->
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <span class="bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent font-black tracking-tighter text-sm">EMOJI MATCH</span>
-        <span id="comboDisplayCompact" class="hidden items-center gap-0.5 text-amber-400 font-extrabold tracking-tight text-[10px]">
-          <span>🔥</span><span id="comboCountCompact">x0</span>
+      <div class="flex items-center gap-2">
+        <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-extrabold tracking-tight text-xs">
+          <span>🔥</span><span id="comboCount">x0</span>
         </span>
+        <span id="xrayStatus" class="text-[10px] text-zinc-500 opacity-40">👁️</span>
       </div>
     </div>
   </div>
@@ -238,11 +238,11 @@
 
   <!-- ═══ X-Ray Power-Up (Glass container) ═══ -->
   <div class="flex-shrink-0 pb-2 px-3 flex justify-center">
-    <div class="bg-slate-900/90 backdrop-blur-md border border-white/10 shadow-2xl rounded-xl px-3 py-2 flex items-center gap-2">
-      <button id="xrayBtn" class="flex items-center gap-1 bg-indigo-600/90 hover:bg-indigo-500 active:bg-indigo-700 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
+    <div class="bg-zinc-900/40 backdrop-blur-md border border-white/5 shadow-xl rounded-lg px-3 py-2 flex items-center gap-2">
+      <button id="xrayBtn" class="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-white transition-all border border-white/10">
         👁️ X-RAY
       </button>
-      <span class="text-[10px] text-gray-500 font-medium">Peek once</span>
+      <span class="text-[10px] text-zinc-500 font-medium">Peek once</span>
     </div>
   </div>
 
@@ -251,7 +251,7 @@
 
   <!-- ═══ Game Over Overlay (Glass Modal) ═══ -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-    <div class="overlay-content flex flex-col items-center gap-4 w-full max-w-xs text-center bg-slate-900/70 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl px-6 py-7">
+    <div class="overlay-content flex flex-col items-center gap-4 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-white/5 shadow-2xl rounded-2xl px-6 py-7">
       <!-- Header -->
       <div id="overlayHeader" class="text-4xl mb-1">💀</div>
       <div id="overlayTitle" class="text-2xl font-black tracking-tight text-white">Game Over</div>
@@ -259,18 +259,18 @@
       <!-- Score -->
       <div class="mt-1 text-center">
         <div class="text-5xl font-black tabular-nums text-white"><span id="finalScore">0</span></div>
-        <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5 font-medium">Score</div>
+        <div class="text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5 font-medium">Score</div>
       </div>
 
       <!-- Stats row -->
       <div class="flex items-center gap-6 mt-1 text-sm">
         <div class="text-center">
           <div class="text-lg font-extrabold tracking-tight text-orange-400"><span id="finalCombo">0</span>x</div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Best Combo</div>
+          <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Best Combo</div>
         </div>
         <div class="text-center">
           <div class="text-lg font-extrabold tracking-tight text-sky-400"><span id="finalMoves">0</span></div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Moves</div>
+          <div class="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Moves</div>
         </div>
       </div>
 
@@ -282,7 +282,7 @@
 
       <!-- Rank -->
       <div class="mt-1 bg-white/5 backdrop-blur-sm rounded-2xl px-5 py-2.5 border border-white/10 w-full">
-        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-0.5 font-medium">Rank</div>
+        <div class="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5 font-medium">Rank</div>
         <div id="rankDisplay" class="text-lg font-extrabold tracking-tight text-amber-400">—</div>
       </div>
 
@@ -292,7 +292,7 @@
       </button>
 
       <!-- Play Again -->
-      <button id="replayBtn" class="btn-pulse w-full mt-1 bg-gradient-to-r from-indigo-600 to-fuchsia-600 hover:from-indigo-500 hover:to-fuchsia-500 active:from-indigo-700 active:to-fuchsia-700 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all shadow-lg shadow-indigo-600/30">
+      <button id="replayBtn" class="btn-pulse w-full mt-1 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition-all border border-white/10 shadow-lg">
         🔄 Play Again
       </button>
     </div>
@@ -305,10 +305,11 @@
 //  FEATURE FLAGS — toggle on/off from here
 // ══════════════════════════════════════════════════════════════
 const GAME_CONFIG = {
-  COMPACT_HUD: true,        // Single-row slim header
-  VANISH_MATCHES: true,     // Matched cards fade to opacity-0
-  CYBER_GRID_BG: true,      // Pure CSS background matrix pattern
-  EMOJI_SCALE_PERCENT: 80,  // Emoji at 80% of card size
+  COMPACT_HUD: true,           // True = Bento Box single-row HUD layout
+  VANISH_MATCHES: true,        // True = Discovered pairs transition to 0% opacity
+  ACCELERATE_TIMER: true,      // True = Drain rate speeds up 5% per cleared pair
+  CYBER_GRID_BG: true,         // True = Render pure CSS background matrix
+  EMOJI_SCALE_PERCENT: 80,     // Emojis strictly fill 80% of inner card area
   GRID_ROWS: 6,
   GRID_COLS: 4,
 };
@@ -681,7 +682,9 @@ function startTimer() {
   S.maxTime = START_TIME;
   updateTimerBar();
   S.timerId = setInterval(() => {
-    S.timeLeft -= TIMER_INTERVAL / 1000;
+    // ACCELERATE_TIMER: drain speeds up 5% per cleared pair
+    const drainMultiplier = GAME_CONFIG.ACCELERATE_TIMER ? 1 + S.matchedPairs * 0.05 : 1;
+    S.timeLeft -= (TIMER_INTERVAL / 1000) * drainMultiplier;
     if (S.timeLeft <= 0) {
       S.timeLeft = 0;
       updateTimerBar();
@@ -710,18 +713,24 @@ function updateTimerBar() {
   timerBarTop.style.width = `${pct}%`;
 
   let color;
+  let glow;
   let critical = false;
   if (pct > 50) {
     color = '#22c55e';
+    glow = 'rgba(34,197,94,';
   } else if (pct > 25) {
     color = '#eab308';
+    glow = 'rgba(234,179,8,';
   } else if (pct > 10) {
     color = '#ef4444';
+    glow = 'rgba(239,68,68,';
   } else {
     color = '#ef4444';
+    glow = 'rgba(239,68,68,';
     critical = true;
   }
   timerBarTop.style.background = color;
+  timerBarTop.style.boxShadow = `${glow}0.35) 0 0 6px, ${glow}0.10) 0 0 14px`;
   timerBarTop.classList.toggle('timer-critical', critical && S.gameActive);
 
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
