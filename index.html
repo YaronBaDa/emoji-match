@@ -4,15 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
   <title>FADE</title>
-  <!-- Google Fonts: Unbounded (headings) + Space Mono (technical data) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <!-- Embedded SVG Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* ─── Base Reset — Obsidian Matte ─── */
     * { -webkit-tap-highlight-color: transparent; }
     html, body {
       height: 100dvh; overflow: hidden; margin: 0; padding: 0;
@@ -23,8 +20,12 @@
       touch-action: manipulation;
     }
 
+    /* ─── Screens ─── */
+    .screen { display: none; flex-direction: column; height: 100dvh; overflow: hidden; }
+    .screen.active { display: flex; }
+
     /* ─── Dot-Matrix Background ─── */
-    #game.dot-bg::before {
+    #gameScreen.dot-bg::before {
       content: '';
       position: fixed;
       inset: 0;
@@ -33,12 +34,126 @@
       pointer-events: none;
       z-index: 0;
     }
-    /* Keep game content above the dots */
-    #game.dot-bg > * { position: relative; z-index: 1; }
-    #game.dot-bg #floatingContainer { z-index: 30; }
-    #game.dot-bg #gameOverOverlay { z-index: 50; }
+    #gameScreen.dot-bg > * { position: relative; z-index: 1; }
+    #gameScreen.dot-bg #floatingContainer { z-index: 30; }
+    #gameScreen.dot-bg #gameOverOverlay { z-index: 50; }
 
-    /* ─── Card Flip 3D — Industrial Sharp ─── */
+    /* ─── Landing ─── */
+    #landingScreen { background: #09090b; }
+    .landing-hero {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 8px;
+    }
+    .hero-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 160px;
+      margin-bottom: 10px;
+    }
+    .hero-card {
+      aspect-ratio: 1;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+      transform-style: preserve-3d;
+    }
+    .hero-card.flipped { background: #18181b; border-color: rgba(255,255,255,0.12); }
+    .hero-card.matched { opacity: 0; transform: scale(0.9); }
+    .hero-card.faded { filter: grayscale(1) opacity(0.35); border-color: #3f3f46; }
+
+    .landing-tagline {
+      font-size: 12px;
+      color: #a1a1aa;
+      text-align: center;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .landing-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+
+    /* ─── Daily Card ─── */
+    .daily-card {
+      background: linear-gradient(135deg, rgba(34,211,238,0.08) 0%, rgba(34,211,238,0.02) 100%);
+      border: 1px solid rgba(34,211,238,0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .daily-card:hover { border-color: rgba(34,211,238,0.5); }
+    .daily-card:active { transform: scale(0.98); }
+    .daily-card.locked {
+      background: rgba(39,39,42,0.4);
+      border-color: #27272a;
+      cursor: default;
+    }
+    .daily-card.locked:hover { border-color: #27272a; }
+    .daily-card.locked:active { transform: none; }
+    .daily-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #22d3ee;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .daily-date { font-size: 13px; font-weight: 700; color: #f4f4f5; }
+    .daily-streak { font-size: 11px; color: #fbbf24; margin-top: 3px; }
+    .daily-countdown { font-size: 10px; color: #a1a1aa; margin-top: 3px; font-family: 'Space Mono', monospace; }
+
+    /* ─── Tier Buttons ─── */
+    .tier-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tier-btn {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .tier-btn:hover { border-color: #3f3f46; background: #1c1c1f; }
+    .tier-btn:active { transform: scale(0.97); }
+    .tier-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f4f4f5;
+      margin-bottom: 2px;
+    }
+    .tier-count {
+      font-size: 10px;
+      color: #a1a1aa;
+      font-family: 'Space Mono', monospace;
+    }
+    .tier-stat {
+      font-size: 9px;
+      color: #71717a;
+      margin-top: 4px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ─── Card Flip 3D ─── */
     .card { perspective: 800px; cursor: pointer; }
     .card-inner {
       position: relative; width: 100%; height: 100%;
@@ -74,11 +189,19 @@
     }
     .card.matched { pointer-events: none; }
     .card.mismatch .card-inner { animation: shake 0.15s ease; }
-
-    /* ─── Flip card face-up glow ─── */
     .card.flipped .card-front {
       border-color: rgba(255,255,255,0.12);
     }
+
+    /* ─── Visual Fade Decay on Cards ─── */
+    .card-face {
+      transition: filter 1.2s ease, opacity 1.2s ease, border-color 1.2s ease;
+    }
+    .card.faded-1 .card-face { filter: saturate(0.65); border-color: rgba(255,255,255,0.06); }
+    .card.faded-2 .card-face { filter: saturate(0.35) grayscale(0.4); border-color: rgba(255,255,255,0.04); opacity: 0.85; }
+    .card.faded-3 .card-face { filter: saturate(0.15) grayscale(0.7); border-color: rgba(255,255,255,0.03); opacity: 0.60; }
+    .card.faded-4 .card-face { filter: saturate(0) grayscale(1); border-color: rgba(255,255,255,0.02); opacity: 0.30; }
+    .card.faded-5 .card-face { filter: saturate(0) grayscale(1); border-color: transparent; opacity: 0; }
 
     /* ─── Animations ─── */
     @keyframes shake {
@@ -108,7 +231,13 @@
       animation: floatUp 0.5s ease-out forwards;
     }
 
-    /* ─── Confetti burst ─── */
+    @keyframes comboPulse {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.35); color: #fff; text-shadow: 0 0 16px rgba(251,191,36,0.8); }
+      100% { transform: scale(1); }
+    }
+    .combo-pulse { animation: comboPulse 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+
     @keyframes confettiBurst {
       0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
       100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(540deg) scale(0.2); }
@@ -119,8 +248,11 @@
       animation: confettiBurst 0.7s ease-out forwards;
     }
 
-    /* ─── Adrenaline Mode ─── */
-    #game.adrenaline-mode::after {
+    @keyframes adrenalinePulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 1; }
+    }
+    #gameScreen.adrenaline-mode::after {
       content: '';
       position: fixed;
       inset: 0;
@@ -129,19 +261,13 @@
       z-index: 15;
       animation: adrenalinePulse 1s ease-in-out infinite;
     }
-    @keyframes adrenalinePulse {
-      0%, 100% { opacity: 0.35; }
-      50% { opacity: 1; }
-    }
 
-    /* ─── Timer bar glow ─── */
     @keyframes pulseGlow {
       0%,100% { box-shadow: 0 0 6px rgba(239,68,68,0.3); }
       50% { box-shadow: 0 0 16px rgba(239,68,68,0.6); }
     }
     .timer-critical { animation: pulseGlow 0.8s ease-in-out infinite; }
 
-    /* ─── Overlay ─── */
     @keyframes bounceIn {
       0% { opacity: 0; transform: scale(0.5); }
       60% { transform: scale(1.05); }
@@ -154,18 +280,28 @@
     }
     .btn-pulse { animation: pulseBtn 1.8s ease-in-out infinite; }
 
-    /* ─── Grid fade-in ─── */
     .grid-fade-in { animation: gridFadeIn 0.3s ease-out; }
     @keyframes gridFadeIn {
       0% { opacity: 0; transform: scale(0.96); }
       100% { opacity: 1; transform: scale(1); }
     }
 
-    /* ─── Feature Flag: COMPACT_HUD ─── */
-    .compact-mode #hudFull { display: none; }
-    #game:not(.compact-mode) #hudCompact { display: none; }
+    /* ─── Tempo Map ─── */
+    .tempo-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+    .tempo-cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+    .tempo-fast { background: rgba(34,197,94,0.35); color: #4ade80; }
+    .tempo-med  { background: rgba(251,191,36,0.35); color: #fbbf24; }
+    .tempo-slow { background: rgba(239,68,68,0.35); color: #f87171; }
+    .tempo-empty { background: rgba(39,39,42,0.5); color: #52525b; }
 
-    /* ─── Feature Flag: VANISH_MATCHES ─── */
+    /* ─── Feature Flags ─── */
+    .compact-mode #hudFull { display: none; }
+    #gameScreen:not(.compact-mode) #hudCompact { display: none; }
     .vanish-mode .card.matched {
       opacity: 0 !important;
       transition: opacity 0.4s ease !important;
@@ -175,38 +311,75 @@
       border-color: transparent !important;
     }
 
-    /* ─── Responsive fine-tune ─── */
     @media (max-width:380px) {
       .card-face { border-radius: 4px; }
       .card-back::after { width: 4px; height: 4px; }
+      .hero-board { width: 140px; gap: 6px; }
+      .hero-card { font-size: 18px; border-radius: 4px; }
     }
     @media (min-width:500px) {
       .card-back::after { width: 8px; height: 8px; }
     }
-
-    /* ─── Card Count Selector ─── */
-    .card-count-btn { background: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; }
-    .card-count-btn.active { background: #22d3ee; color: #09090b; border-color: #22d3ee; }
-    .card-count-btn:not(.active):hover { background: #3f3f46; color: #f4f4f5; }
   </style>
 </head>
 <body>
 
-<div id="game" class="h-full w-full flex flex-col overflow-hidden">
+<!-- ═══ LANDING SCREEN ═══ -->
+<div id="landingScreen" class="screen active">
+  <div class="landing-hero">
+    <div class="hero-board" id="heroBoard"></div>
+    <div class="landing-tagline">Match them before they fade.</div>
+  </div>
 
-  <!-- ═══ Timer Bar — electric cyan line ═══ -->
+  <div class="landing-scroll">
+    <!-- Daily Challenge -->
+    <div id="dailyCard" class="daily-card">
+      <div class="daily-label">Daily Challenge</div>
+      <div class="daily-date" id="dailyDate">—</div>
+      <div class="daily-streak" id="dailyStreak">🔥 Day 0</div>
+      <div class="daily-countdown hidden" id="dailyCountdown">Tomorrow in —</div>
+    </div>
+
+    <!-- Tier Buttons -->
+    <div class="tier-grid">
+      <button class="tier-btn" data-count="12" onclick="startGameFromTier(12)">
+        <div class="tier-name">Warm-up</div>
+        <div class="tier-count">12 cards</div>
+        <div class="tier-stat" id="tierStat12">avg 0:42 · — finish</div>
+      </button>
+      <button class="tier-btn" data-count="16" onclick="startGameFromTier(16)">
+        <div class="tier-name">Classic</div>
+        <div class="tier-count">16 cards</div>
+        <div class="tier-stat" id="tierStat16">avg 1:30 · — finish</div>
+      </button>
+      <button class="tier-btn" data-count="20" onclick="startGameFromTier(20)">
+        <div class="tier-name">Hard</div>
+        <div class="tier-count">20 cards</div>
+        <div class="tier-stat" id="tierStat20">12% finish</div>
+      </button>
+      <button class="tier-btn" data-count="24" onclick="startGameFromTier(24)">
+        <div class="tier-name">Brutal</div>
+        <div class="tier-count">24 cards</div>
+        <div class="tier-stat" id="tierStat24">3% finish</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div id="gameScreen" class="screen">
+
+  <!-- Timer Bar -->
   <div class="flex-shrink-0 w-full" style="height:3px;">
     <div id="timerBarTop" class="h-full transition-all duration-150 ease-linear" style="width:100%;background:#22d3ee"></div>
   </div>
 
-  <!-- ═══ Bento Box HUD (COMPACT_HUD) ═══ -->
+  <!-- Bento Box HUD -->
   <div id="hudCompact" class="flex-shrink-0 mx-3 mt-3">
     <div class="grid grid-cols-5 gap-1.5">
-      <!-- Left: FADE brand logo -->
       <div class="col-span-2 bg-zinc-900/30 border border-zinc-800/80 rounded-md p-2.5 flex items-center justify-center">
         <span class="font-black tracking-tighter text-4xl text-zinc-100 leading-none">FADE</span>
       </div>
-      <!-- Right: stats + combo -->
       <div class="col-span-3 bg-zinc-900/30 border border-zinc-800/80 rounded-md px-2.5 py-2 flex items-center justify-between">
         <div class="flex items-center gap-1.5 font-mono text-[11px]">
           <span class="text-base leading-none">🏆</span>
@@ -222,7 +395,7 @@
     </div>
   </div>
 
-  <!-- ═══ Full Header (fallback, hidden in COMPACT_HUD) ═══ -->
+  <!-- Full Header (fallback) -->
   <div id="hudFull" class="flex-shrink-0 px-4 pt-3 pb-2">
     <span class="font-black tracking-tighter text-4xl text-zinc-100">FADE</span>
     <div class="flex items-center justify-between mt-1 font-mono text-xs">
@@ -235,53 +408,48 @@
       </div>
       <div class="flex items-center gap-2">
         <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">🔥<span id="comboCount">x0</span></span>
-        <span id="xrayStatus" class="text-zinc-600 opacity-40 text-[10px]">👁️</span>
+        <span id="xrayHud" class="text-zinc-500 text-[10px] font-mono">👁️×0</span>
       </div>
     </div>
   </div>
 
-  <!-- ═══ Grid ═══ -->
+  <!-- Grid -->
   <div id="gridWrapper" class="flex-1 min-h-0 flex items-center justify-center px-3 pb-1 overflow-hidden" style="max-height:66vh">
     <div id="grid" class="grid grid-cols-4 gap-1.5 grid-fade-in"></div>
   </div>
 
-  <!-- ═══ X-Ray Power-Up ═══ -->
+  <!-- X-Ray -->
   <div class="flex-shrink-0 pb-1.5 px-3 flex justify-center">
     <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
       <button id="xrayBtn" class="font-mono font-bold text-[10px] text-zinc-100 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-sm px-3 py-1.5 transition-colors border border-zinc-700/60">
         👁️ X-RAY
       </button>
-      <span class="font-mono text-[9px] text-zinc-600">peek once</span>
+      <span id="xrayLabel" class="font-mono text-[9px] text-zinc-600">peek</span>
     </div>
   </div>
 
-  <!-- ═══ Floating Text Container ═══ -->
+  <!-- Floating Text Container -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
-  <!-- ═══ Card Count Selector ═══ -->
-  <div class="flex-shrink-0 pb-2 px-3 flex justify-center">
-    <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
-      <span class="font-mono text-[9px] text-zinc-600 uppercase tracking-wider">Grid</span>
-      <div class="flex gap-1">
-        <button data-count="12" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">12</button>
-        <button data-count="16" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">16</button>
-        <button data-count="20" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">20</button>
-        <button data-count="24" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">24</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ Game Over Overlay ═══ -->
+  <!-- Game Over Overlay -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
     <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 shadow-2xl rounded-md px-6 py-7">
       <div id="overlayHeader" class="text-3xl mb-1">💀</div>
       <div id="overlayTitle" class="text-xl font-black tracking-tight text-zinc-100">Game Over</div>
 
+      <!-- Percentile Hero -->
       <div class="mt-1 text-center">
-        <div class="text-4xl font-black tabular-nums text-zinc-100 font-mono"><span id="finalScore">0</span></div>
-        <div class="text-[9px] text-zinc-600 uppercase tracking-widest mt-0.5 font-mono">Score</div>
+        <div class="text-[9px] text-zinc-600 uppercase tracking-widest font-mono">estimated percentile</div>
+        <div class="text-3xl font-black text-cyan-400 font-mono" id="percentileDisplay">Top —%</div>
       </div>
 
+      <!-- Verdict -->
+      <div id="verdictDisplay" class="text-xs text-zinc-300 font-mono px-2 py-1 bg-zinc-800/40 rounded">—</div>
+
+      <!-- Tempo Map -->
+      <div id="tempoMap" class="tempo-map w-full mt-1"></div>
+
+      <!-- Secondary Stats -->
       <div class="flex items-center gap-6 mt-1 font-mono text-xs">
         <div class="text-center">
           <div class="text-base font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
@@ -291,22 +459,25 @@
           <div class="text-base font-bold text-cyan-400"><span id="finalMoves">0</span></div>
           <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Moves</div>
         </div>
+        <div class="text-center">
+          <div class="text-base font-bold text-zinc-100"><span id="finalScore">0</span></div>
+          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Score</div>
+        </div>
       </div>
 
-      <div id="benchmarkDisplay" class="text-[11px] mt-0.5 font-mono"></div>
-      <div id="nearMissText" class="hidden text-xs text-red-400 font-mono mt-0.5"></div>
-
-      <div class="mt-0.5 bg-zinc-900/30 border border-zinc-800/80 rounded-md px-4 py-2 w-full">
-        <div class="text-[9px] text-zinc-600 uppercase tracking-widest mb-0.5 font-mono">Rank</div>
-        <div id="rankDisplay" class="text-sm font-bold text-amber-400 font-mono">—</div>
-      </div>
+      <!-- Countdown (daily mode) -->
+      <div id="tomorrowCountdown" class="hidden text-[10px] text-zinc-500 font-mono mt-0.5">Tomorrow's challenge in —</div>
 
       <button id="shareBtn" class="w-full mt-0.5 font-mono font-bold text-[11px] flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-md px-4 py-2.5 text-zinc-100 transition-colors border border-zinc-700/60">
-        <span>📤</span> Brag &amp; Share
+        <span>📤</span> Share
       </button>
 
-      <button id="replayBtn" class="btn-pulse w-full mt-0.5 font-mono font-bold text-[11px] bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-md px-4 py-2.5 text-zinc-100 transition-colors border border-zinc-700/60">
+      <button id="replayBtn" class="btn-pulse w-full mt-0.5 font-mono font-bold text-[11px] bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 rounded-md px-4 py-2.5 text-zinc-950 transition-colors border border-cyan-500/60">
         🔄 Play Again
+      </button>
+
+      <button id="backBtn" class="w-full font-mono font-bold text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors py-1">
+        ← Back to Menu
       </button>
     </div>
   </div>
@@ -314,6 +485,7 @@
 </div>
 
 <script>
+
 // ══════════════════════════════════════════════════════════════
 //  FEATURE FLAGS
 // ══════════════════════════════════════════════════════════════
@@ -329,6 +501,13 @@ const GAME_CONFIG = {
 //  GAME CONSTANTS
 // ══════════════════════════════════════════════════════════════
 const START_TIME = 60;
+const BASE_SCORE = 100;
+const COMBO_WINDOW = 2000;
+const MATCH_TIME_BONUS = 2;
+const GRID_GAP = 6;
+const TIMER_INTERVAL = 100;
+const ADRENALINE_THRESHOLD = 0.20;
+const XRAY_MAX_STORED = 3;
 
 const ALL_EMOJIS = [
   '💀','🤡','🧠','🔥','🤫','👑','💅','🤠',
@@ -337,12 +516,22 @@ const ALL_EMOJIS = [
 ];
 
 const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
-const BASE_SCORE = 100;
-const COMBO_WINDOW = 2000;
-const MATCH_TIME_BONUS = 2;
-const GRID_GAP = 6;
-const TIMER_INTERVAL = 100;
-const ADRENALINE_THRESHOLD = 0.20;
+
+// estimated score curve for percentile (hardcoded until real data)
+const PERCENTILE_CURVE = [
+  { min: 0,    pct: 99 },
+  { min: 500,  pct: 90 },
+  { min: 1000, pct: 75 },
+  { min: 1500, pct: 60 },
+  { min: 2000, pct: 45 },
+  { min: 2500, pct: 35 },
+  { min: 3000, pct: 25 },
+  { min: 3500, pct: 18 },
+  { min: 4000, pct: 12 },
+  { min: 4500, pct: 8  },
+  { min: 5000, pct: 5  },
+  { min: 6000, pct: 2  },
+];
 
 // ══════════════════════════════════════════════════════════════
 //  STATE
@@ -353,6 +542,7 @@ const S = {
   maxCombo: 0,
   moves: 0,
   flipHistory: [],
+  pairTimes: [],
   timeLeft: START_TIME,
   maxTime: START_TIME,
   totalPairs: 0,
@@ -363,14 +553,46 @@ const S = {
   lastMatchTime: 0,
   timerId: null,
   gameActive: false,
-  xrayUsed: false,
+  xrayCharges: 0,
+  fadeTimer: null,
+  fadeLevel: 0,
+  sessionStartTime: 0,
+  mode: 'classic',
 };
+
+// ══════════════════════════════════════════════════════════════
+//  STATS (localStorage)
+// ══════════════════════════════════════════════════════════════
+function loadStats() {
+  try {
+    const raw = localStorage.getItem('fade_stats_v2');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    tierPlays: { 12:0, 16:0, 20:0, 24:0 },
+    tierWins:  { 12:0, 16:0, 20:0, 24:0 },
+    tierAvgMoves: { 12:0, 16:0, 20:0, 24:0 },
+    streak: 0,
+    maxStreak: 0,
+    lastDate: '',
+    dailyPlayed: '',
+    dailyWon: false,
+  };
+}
+
+function saveStats(stats) {
+  try { localStorage.setItem('fade_stats_v2', JSON.stringify(stats)); } catch(e) {}
+}
+
+let STATS = loadStats();
 
 // ══════════════════════════════════════════════════════════════
 //  DOM REFS
 // ══════════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 
+const landingScreen = $('landingScreen');
+const gameScreen    = $('gameScreen');
 const gridEl        = $('grid');
 const gridWrapper   = $('gridWrapper');
 const timerBarTop   = $('timerBarTop');
@@ -384,19 +606,73 @@ const comboDisplayCompact = $('comboDisplayCompact');
 const comboCountCompact = $('comboCountCompact');
 const floatContainer= $('floatingContainer');
 const xrayBtn       = $('xrayBtn');
-const xrayStatus    = $('xrayStatus');
+const xrayLabel     = $('xrayLabel');
+const xrayHud       = $('xrayHud');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
 const finalScore    = $('finalScore');
 const finalCombo    = $('finalCombo');
 const finalMoves    = $('finalMoves');
-const benchmarkDisp = $('benchmarkDisplay');
-const nearMissText  = $('nearMissText');
-const rankDisplay   = $('rankDisplay');
+const percentileDisplay = $('percentileDisplay');
+const verdictDisplay    = $('verdictDisplay');
+const tempoMapEl      = $('tempoMap');
+const tomorrowCountdown = $('tomorrowCountdown');
 const shareBtn      = $('shareBtn');
 const replayBtn     = $('replayBtn');
-const gameEl        = $('game');
+const backBtn       = $('backBtn');
+const gameEl        = $('gameScreen');
+const dailyDate     = $('dailyDate');
+const dailyStreak   = $('dailyStreak');
+const dailyCountdown= $('dailyCountdown');
+const dailyCard     = $('dailyCard');
+
+// ══════════════════════════════════════════════════════════════
+//  DETERMINISTIC SEEDING (Daily)
+// ══════════════════════════════════════════════════════════════
+function cyrb128(str) {
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0, k; i < str.length; i++) {
+    k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  return (h1^h2^h3^h4)>>>0;
+}
+
+function mulberry32(a) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+function getTodayUTC() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function getDailySeed() {
+  return cyrb128(getTodayUTC() + '_fade_daily_v1');
+}
+
+function seededShuffle(arr, seed) {
+  const rng = mulberry32(seed);
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 // ══════════════════════════════════════════════════════════════
 //  UTILITIES
@@ -409,15 +685,177 @@ function shuffle(arr) {
   return arr;
 }
 
-function getEmojisForLevel(count) {
-  return shuffle([...ALL_EMOJIS]).slice(0, count);
+function getEmojisForLevel(count, seed) {
+  const source = seed ? seededShuffle([...ALL_EMOJIS], seed) : shuffle([...ALL_EMOJIS]);
+  return source.slice(0, count);
 }
 
-function getSpiteRank(remaining) {
-  if (remaining >= 7) return { title: 'TOTAL NOOB', subtitle: 'Brain Status: Cooked 🍳' };
-  if (remaining >= 4) return { title: 'AVERAGE HUMAN', subtitle: 'Getting Warm... 🌶️' };
-  if (remaining >= 1) return { title: 'CERTIFIED GIGABRAIN', subtitle: 'SO CLOSE! 😫' };
-  return { title: 'ABSOLUTE LEGEND', subtitle: 'EMOJI DEITY 👑' };
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m > 0 ? `${m}:${s.toString().padStart(2,'0')}` : `0:${s.toString().padStart(2,'0')}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SCREEN NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (name === 'landing') landingScreen.classList.add('active');
+  if (name === 'game') gameScreen.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LANDING SCREEN
+// ══════════════════════════════════════════════════════════════
+function initLanding() {
+  const today = getTodayUTC();
+  dailyDate.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Streak
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (STATS.lastDate === yesterday && STATS.streak > 0) {
+    // streak continues
+  } else if (STATS.lastDate !== today) {
+    // streak broken (or first play)
+    if (STATS.lastDate !== yesterday) STATS.streak = 0;
+  }
+  dailyStreak.textContent = STATS.streak > 0 ? `🔥 Day ${STATS.streak}` : '🔥 Day 0';
+
+  // Daily lock state
+  const dailyLocked = STATS.dailyPlayed === today;
+  if (dailyLocked) {
+    dailyCard.classList.add('locked');
+    dailyCountdown.classList.remove('hidden');
+    updateDailyCountdown();
+    if (!window._dailyCountdownInterval) {
+      window._dailyCountdownInterval = setInterval(updateDailyCountdown, 1000);
+    }
+  } else {
+    dailyCard.classList.remove('locked');
+    dailyCountdown.classList.add('hidden');
+    dailyCard.onclick = () => startDaily();
+  }
+
+  // Tier stats
+  updateTierStats();
+
+  // Hero mini-board
+  startHeroAnimation();
+}
+
+function updateTierStats() {
+  [12,16,20,24].forEach(count => {
+    const el = $(`tierStat${count}`);
+    const plays = STATS.tierPlays[count] || 0;
+    if (plays === 0) {
+      const defaults = { 12:'avg 0:42', 16:'avg 1:30', 20:'12% finish', 24:'3% finish' };
+      el.textContent = defaults[count];
+    } else {
+      const wins = STATS.tierWins[count] || 0;
+      const rate = Math.round((wins / plays) * 100);
+      const avg = STATS.tierAvgMoves[count] || 0;
+      el.textContent = `${rate}% win · avg ${avg} moves`;
+    }
+  });
+}
+
+function updateDailyCountdown() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setUTCHours(0, 0, 0, 0);
+  const diff = tomorrow - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  dailyCountdown.textContent = `Tomorrow in ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+// Hero mini-board: 6 cards, auto-loop flip→match→fade
+let heroInterval = null;
+function startHeroAnimation() {
+  const board = $('heroBoard');
+  board.innerHTML = '';
+  const emojis = ['🔥','🧠','⚡','🎯','💀','👑'];
+  const cards = [];
+  emojis.forEach((e, i) => {
+    const c = document.createElement('div');
+    c.className = 'hero-card';
+    c.textContent = '·';
+    c.dataset.emoji = e;
+    board.appendChild(c);
+    cards.push(c);
+  });
+
+  let step = 0;
+  if (heroInterval) clearInterval(heroInterval);
+
+  function tick() {
+    // Reset all
+    cards.forEach(c => { c.className = 'hero-card'; c.textContent = '·'; });
+
+    if (step < 6) {
+      // Flip cards one by one
+      const c = cards[step];
+      c.classList.add('flipped');
+      c.textContent = c.dataset.emoji;
+    } else if (step < 9) {
+      // Show all flipped
+      cards.forEach(c => { c.classList.add('flipped'); c.textContent = c.dataset.emoji; });
+      // "Match" pairs
+      const matchIdx = (step - 6) * 2;
+      if (matchIdx < 6) {
+        cards[matchIdx].classList.add('matched');
+        cards[matchIdx + 1].classList.add('matched');
+      }
+    } else if (step < 15) {
+      // Fade remaining
+      cards.forEach((c, i) => {
+        if (!c.classList.contains('matched')) {
+          c.classList.add('flipped');
+          c.textContent = c.dataset.emoji;
+          c.classList.add(`faded-${Math.min(5, step - 8)}`);
+        }
+      });
+    }
+
+    step++;
+    if (step > 15) step = 0;
+  }
+
+  tick();
+  heroInterval = setInterval(tick, 200);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GAME START
+// ══════════════════════════════════════════════════════════════
+function startGameFromTier(count) {
+  S.mode = 'classic';
+  startGame(count);
+}
+
+function startDaily() {
+  const today = getTodayUTC();
+  if (STATS.dailyPlayed === today) return; // already played
+  S.mode = 'daily';
+  startGame(16); // daily defaults to Classic
+}
+
+function startGame(count) {
+  showScreen('game');
+  const dims = getGridDims(count);
+  GAME_CONFIG.GRID_ROWS = dims.rows;
+  GAME_CONFIG.GRID_COLS = dims.cols;
+  localStorage.setItem('fade_card_count', count);
+
+  // Apply feature flags
+  gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
+  gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
+  gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
+
+  initGame();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -440,9 +878,19 @@ function buildGrid() {
   S.matchedPairs = 0;
   S.cards = [];
 
-  const emojis = getEmojisForLevel(S.totalPairs);
+  const seed = S.mode === 'daily' ? getDailySeed() : null;
+  const emojis = getEmojisForLevel(S.totalPairs, seed);
   const pairs = [...emojis, ...emojis];
-  shuffle(pairs);
+
+  if (S.mode === 'daily') {
+    const rng = mulberry32(seed + 1);
+    for (let i = pairs.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+    }
+  } else {
+    shuffle(pairs);
+  }
 
   const size = calculateCardSize();
   const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
@@ -571,9 +1019,15 @@ function handleMatch(i1, i2) {
 
   if (S.combo >= 3) {
     spawnConfetti(midX, midY);
+    // Earn an X-Ray charge on 3+ combo
+    if (S.xrayCharges < XRAY_MAX_STORED) {
+      S.xrayCharges++;
+      updateXrayUI();
+    }
   }
 
   S.flipHistory.push(S.combo >= 3 ? '🔥' : '🟩');
+  S.pairTimes.push(performance.now() - S.sessionStartTime);
 
   updateScore();
   updateComboDisplay();
@@ -613,10 +1067,10 @@ function handleMismatch(i1, i2) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  X-RAY POWER-UP
+//  X-RAY (Earned)
 // ══════════════════════════════════════════════════════════════
 function activateXray() {
-  if (!S.gameActive || S.xrayUsed) return;
+  if (!S.gameActive || S.xrayCharges <= 0) return;
 
   const faceDown = [];
   S.cards.forEach((card) => {
@@ -635,10 +1089,19 @@ function activateXray() {
     });
   }, 500);
 
-  S.xrayUsed = true;
-  xrayBtn.classList.add('opacity-40', 'pointer-events-none');
-  xrayStatus.classList.remove('opacity-40');
-  xrayStatus.textContent = '✗';
+  S.xrayCharges--;
+  updateXrayUI();
+}
+
+function updateXrayUI() {
+  const label = S.xrayCharges > 0 ? `👁️×${S.xrayCharges}` : '👁️×0';
+  xrayHud.textContent = label;
+  xrayLabel.textContent = S.xrayCharges > 0 ? `${S.xrayCharges} peek${S.xrayCharges>1?'s':''}` : 'peek';
+  if (S.xrayCharges === 0) {
+    xrayBtn.classList.add('opacity-40');
+  } else {
+    xrayBtn.classList.remove('opacity-40');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -656,7 +1119,7 @@ function showFloatingText(text, x, y) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  CONFETTI BURST
+//  CONFETTI
 // ══════════════════════════════════════════════════════════════
 function spawnConfetti(x, y) {
   const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff6bff','#ff9f43'];
@@ -667,16 +1130,37 @@ function spawnConfetti(x, y) {
     const dist = 25 + Math.random() * 60;
     const size = 3 + Math.random() * 5;
     el.className = 'confetti-piece';
-    el.style.cssText = `
-      left:${x}px; top:${y}px;
-      width:${size}px; height:${size}px;
-      background:${color};
-      border-radius:${Math.random() > 0.5 ? '50%' : '1px'};
-      --dx:${Math.cos(angle) * dist}px; --dy:${Math.sin(angle) * dist}px;
-    `;
+    el.style.cssText = `left:${x}px; top:${y}px; width:${size}px; height:${size}px; background:${color}; border-radius:${Math.random() > 0.5 ? '50%' : '1px'}; --dx:${Math.cos(angle) * dist}px; --dy:${Math.sin(angle) * dist}px;`;
     floatContainer.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  VISUAL FADE DECAY
+// ══════════════════════════════════════════════════════════════
+function startFadeDecay() {
+  stopFadeDecay();
+  S.fadeLevel = 0;
+  const totalCards = S.cards.length;
+  // Fade stages: every 12 seconds, advance one level on unmatched cards
+  const interval = 12000;
+  S.fadeTimer = setInterval(() => {
+    if (!S.gameActive) return;
+    S.fadeLevel++;
+    if (S.fadeLevel > 5) { stopFadeDecay(); return; }
+    S.cards.forEach(card => {
+      if (!card.matched && !card.flipped) {
+        // remove old faded classes
+        for (let i = 1; i <= 5; i++) card.element.classList.remove(`faded-${i}`);
+        card.element.classList.add(`faded-${Math.min(5, S.fadeLevel)}`);
+      }
+    });
+  }, interval);
+}
+
+function stopFadeDecay() {
+  if (S.fadeTimer) { clearInterval(S.fadeTimer); S.fadeTimer = null; }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -713,12 +1197,9 @@ function addTime(sec) {
 function updateTimerBar() {
   const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
   timerBarTop.style.width = `${pct}%`;
-
-  // Electric cyan → amber warning below 25%
   const color = pct <= 25 ? '#f59e0b' : '#22d3ee';
   timerBarTop.style.background = color;
   timerBarTop.classList.toggle('timer-critical', pct <= 10 && S.gameActive);
-
   const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
   gameEl.classList.toggle('adrenaline-mode', adrenaline);
 }
@@ -739,6 +1220,15 @@ function updateComboDisplay() {
   comboDisplayCompact.classList.toggle('hidden', !show);
   comboCount.textContent = `x${S.combo + 1}`;
   comboCountCompact.textContent = `x${S.combo + 1}`;
+  // Pulse animation
+  if (show) {
+    comboDisplay.classList.add('combo-pulse');
+    comboDisplayCompact.classList.add('combo-pulse');
+    setTimeout(() => {
+      comboDisplay.classList.remove('combo-pulse');
+      comboDisplayCompact.classList.remove('combo-pulse');
+    }, 350);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -747,12 +1237,14 @@ function updateComboDisplay() {
 function gameOver() {
   S.gameActive = false;
   stopTimer();
+  stopFadeDecay();
   showOverlay('💀', 'Game Over');
 }
 
 function victory() {
   S.gameActive = false;
   stopTimer();
+  stopFadeDecay();
   showOverlay('🏆', 'Victory!');
 }
 
@@ -765,49 +1257,198 @@ function showOverlay(headerEmoji, titleText) {
   finalCombo.textContent = S.maxCombo + 1;
   finalMoves.textContent = S.moves;
 
-  const avg = 32;
-  const moves = S.moves;
-  if (moves < avg) {
-    benchmarkDisp.innerHTML = `<span class="text-emerald-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span> · <span class="text-emerald-400">Elite 🧠</span>`;
-  } else if (moves === avg) {
-    benchmarkDisp.innerHTML = `<span class="text-amber-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span> · <span class="text-amber-400">Average</span>`;
+  // Percentile (estimated from hardcoded curve)
+  const pct = computePercentile(S.score);
+  percentileDisplay.textContent = `Top ${pct}%`;
+
+  // Tempo map
+  renderTempoMap();
+
+  // Verdict
+  verdictDisplay.textContent = generateVerdict();
+
+  // Tomorrow countdown (daily mode)
+  if (S.mode === 'daily') {
+    tomorrowCountdown.classList.remove('hidden');
+    updateTomorrowCountdown();
+    if (!window._tomorrowInterval) {
+      window._tomorrowInterval = setInterval(updateTomorrowCountdown, 1000);
+    }
   } else {
-    benchmarkDisp.innerHTML = `<span class="text-red-400">${moves}</span> vs avg <span class="text-zinc-500">${avg}</span>`;
+    tomorrowCountdown.classList.add('hidden');
   }
 
-  const remaining = S.totalPairs - S.matchedPairs;
-  const spite = getSpiteRank(remaining);
-  rankDisplay.textContent = spite.title;
-  nearMissText.textContent = spite.subtitle;
-  nearMissText.classList.remove('hidden');
-
   gameOverlay.classList.remove('hidden');
+
+  // Persist stats
+  persistStats(headerEmoji === '🏆');
+}
+
+function computePercentile(score) {
+  for (let i = PERCENTILE_CURVE.length - 1; i >= 0; i--) {
+    if (score >= PERCENTILE_CURVE[i].min) {
+      // Add slight daily variance so it feels organic
+      const seed = cyrb128(getTodayUTC() + '_pct');
+      const variance = (seed % 5) - 2; // -2 to +2
+      return Math.max(1, Math.min(99, PERCENTILE_CURVE[i].pct + variance));
+    }
+  }
+  return 99;
+}
+
+function renderTempoMap() {
+  // 4 rows x 5 cells. Each cell = a quartile of pairs.
+  // Color by speed: fast (green), medium (yellow), slow (red)
+  tempoMapEl.innerHTML = '';
+  const total = S.totalPairs;
+  const cols = 5;
+  const rows = 4;
+  const pairsPerCell = Math.max(1, Math.ceil(total / (rows * cols)));
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c;
+      const cell = document.createElement('div');
+      cell.className = 'tempo-cell';
+
+      const pairIdxStart = idx * pairsPerCell;
+      const pairIdxEnd = Math.min(pairIdxStart + pairsPerCell, total);
+
+      if (pairIdxStart >= S.pairTimes.length) {
+        cell.classList.add('tempo-empty');
+        cell.textContent = '·';
+      } else {
+        // Average time for pairs in this cell
+        let sum = 0, count = 0;
+        for (let p = pairIdxStart; p < pairIdxEnd && p < S.pairTimes.length; p++) {
+          sum += S.pairTimes[p];
+          count++;
+        }
+        const avg = count > 0 ? sum / count : 0;
+        // Thresholds in ms
+        if (avg < 8000) { cell.classList.add('tempo-fast'); cell.textContent = '⚡'; }
+        else if (avg < 18000) { cell.classList.add('tempo-med'); cell.textContent = '🟨'; }
+        else { cell.classList.add('tempo-slow'); cell.textContent = '🟥'; }
+      }
+      tempoMapEl.appendChild(cell);
+    }
+  }
+}
+
+function generateVerdict() {
+  const times = S.pairTimes;
+  if (times.length < 3) return 'Keep practicing.';
+
+  // Split into quartiles
+  const q1 = times.slice(0, Math.ceil(times.length * 0.25));
+  const q2 = times.slice(Math.ceil(times.length * 0.25), Math.ceil(times.length * 0.5));
+  const q3 = times.slice(Math.ceil(times.length * 0.5), Math.ceil(times.length * 0.75));
+  const q4 = times.slice(Math.ceil(times.length * 0.75));
+
+  const avg = arr => arr.reduce((a,b) => a+b,0) / (arr.length||1);
+  const a1 = avg(q1), a2 = avg(q2), a3 = avg(q3), a4 = avg(q4);
+
+  // flawless: all fast
+  if (a1 < 10000 && a2 < 10000 && a3 < 10000 && a4 < 10000) return 'Clean run.';
+  // cold-start: slow first, fast finish
+  if (a1 > a2 && a2 > a3 && a3 > a4 && a1 > 15000) return 'Slow start, strong finish.';
+  // panic-recovery: V-shape (slow middle, fast ends)
+  if (a2 > a1 && a2 > a3 && a3 < a2) return 'Clutch recovery.';
+  // collapse: degrading
+  if (a1 < a2 && a2 < a3 && a3 < a4) return 'Lost the thread.';
+  // default
+  return 'Solid effort.';
+}
+
+function updateTomorrowCountdown() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setUTCHours(0, 0, 0, 0);
+  const diff = tomorrow - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  tomorrowCountdown.textContent = `Tomorrow's challenge in ${h}h ${m}m ${s}s`;
+}
+
+function persistStats(won) {
+  const count = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
+  STATS.tierPlays[count] = (STATS.tierPlays[count] || 0) + 1;
+  if (won) {
+    STATS.tierWins[count] = (STATS.tierWins[count] || 0) + 1;
+  }
+  // Rolling average moves
+  const oldAvg = STATS.tierAvgMoves[count] || 0;
+  const oldN = STATS.tierPlays[count] - 1;
+  STATS.tierAvgMoves[count] = Math.round((oldAvg * oldN + S.moves) / STATS.tierPlays[count]);
+
+  const today = getTodayUTC();
+  STATS.lastDate = today;
+
+  if (won) {
+    STATS.streak = (STATS.streak || 0) + 1;
+    STATS.maxStreak = Math.max(STATS.maxStreak || 0, STATS.streak);
+  } else {
+    STATS.streak = 0;
+  }
+
+  if (S.mode === 'daily') {
+    STATS.dailyPlayed = today;
+    STATS.dailyWon = won;
+  }
+
+  saveStats(STATS);
 }
 
 // ══════════════════════════════════════════════════════════════
 //  SHARE
 // ══════════════════════════════════════════════════════════════
 function shareScore() {
-  const remaining = S.totalPairs - S.matchedPairs;
-  const spite = getSpiteRank(remaining);
-
-  let mapRows = [];
-  for (let i = 0; i < S.flipHistory.length; i += 4) {
-    mapRows.push(S.flipHistory.slice(i, i + 4).join(''));
-  }
-  const visualMap = mapRows.join('\n');
-
+  const pct = computePercentile(S.score);
+  const verdict = generateVerdict();
   const cardCount = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
+  const isDaily = S.mode === 'daily';
+
+  // Build tempo map rows for share (5 per row, using emojis)
+  let tempoRows = [];
+  const total = S.totalPairs;
+  const perRow = 5;
+  const pairsPerCell = Math.max(1, Math.ceil(total / 20));
+  for (let i = 0; i < total; i += pairsPerCell) {
+    let sum = 0, cnt = 0;
+    for (let p = i; p < i + pairsPerCell && p < S.pairTimes.length; p++) {
+      sum += S.pairTimes[p]; cnt++;
+    }
+    const avg = cnt > 0 ? sum / cnt : 0;
+    tempoRows.push(avg < 8000 ? '⚡' : avg < 18000 ? '🟨' : '🟥');
+  }
+  // Group into rows of 5
+  let tempoStr = '';
+  for (let i = 0; i < tempoRows.length; i += perRow) {
+    tempoStr += tempoRows.slice(i, i + perRow).join('') + '\n';
+  }
+
+  const header = isDaily ? `🧠 FADE DAILY — ${getTodayUTC()}` : `🧠 FADE: ${cardCount}-CARD CHALLENGE`;
   const text = [
-    `🧠 FADE: ${cardCount}-CARD CHALLENGE 🧠`,
-    `⏱️ ${Math.floor(S.timeLeft)}s | 🕹️ ${S.moves} (avg 32)`,
-    `🔥 x${S.maxCombo + 1} | 👑 ${spite.title}`,
+    header,
     ``,
-    visualMap,
+    `🏆 Top ${pct}% today`,
+    `⏱️ ${formatTime(Math.floor(S.timeLeft))} | 🕹️ ${S.moves} moves`,
+    `🔥 x${S.maxCombo + 1} combo`,
+    ``,
+    tempoStr.trim(),
+    ``,
+    `💬 ${verdict}`,
     ``,
     `⚡ ${GAME_URL}`,
   ].join('\n');
 
+  // Web Share API
+  if (navigator.share) {
+    navigator.share({ title: 'FADE', text }).catch(() => {});
+  }
+  // Clipboard
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => showShareCopied()).catch(() => fallbackCopy(text));
   } else {
@@ -830,28 +1471,29 @@ function showShareCopied() {
   shareBtn.classList.add('bg-emerald-800', 'border-emerald-700');
   shareBtn.classList.remove('bg-zinc-800', 'border-zinc-700/60');
   setTimeout(() => {
-    shareBtn.innerHTML = '<span>📤</span> Brag &amp; Share';
+    shareBtn.innerHTML = '<span>📤</span> Share';
     shareBtn.classList.remove('bg-emerald-800', 'border-emerald-700');
     shareBtn.classList.add('bg-zinc-800', 'border-zinc-700/60');
   }, 1500);
 }
 
 // ══════════════════════════════════════════════════════════════
-//  RESTART
+//  RESTART / NAVIGATION
 // ══════════════════════════════════════════════════════════════
 function playAgain() {
   stopTimer();
+  stopFadeDecay();
   gameOverlay.classList.add('hidden');
 
   S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
-  S.flipHistory = []; S.matchedPairs = 0; S.flippedIndices = [];
-  S.isProcessing = false; S.gameActive = false; S.xrayUsed = false;
+  S.flipHistory = []; S.pairTimes = [];
+  S.matchedPairs = 0; S.flippedIndices = [];
+  S.isProcessing = false; S.gameActive = false; S.xrayCharges = 0;
+  S.fadeLevel = 0;
 
-  xrayBtn.classList.remove('opacity-40', 'pointer-events-none');
-  xrayStatus.classList.add('opacity-40');
-  xrayStatus.textContent = '👁️';
+  updateXrayUI();
 
-  shareBtn.innerHTML = '<span>📤</span> Brag &amp; Share';
+  shareBtn.innerHTML = '<span>📤</span> Share';
   shareBtn.classList.remove('bg-emerald-800', 'border-emerald-700');
   shareBtn.classList.add('bg-zinc-800', 'border-zinc-700/60');
 
@@ -860,29 +1502,32 @@ function playAgain() {
   initGame();
 }
 
+function backToMenu() {
+  stopTimer();
+  stopFadeDecay();
+  gameOverlay.classList.add('hidden');
+  if (heroInterval) clearInterval(heroInterval);
+  showScreen('landing');
+  initLanding();
+}
+
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
 function initGame() {
   S.gameActive = false;
+  S.xrayCharges = 0;
+  S.fadeLevel = 0;
+  S.sessionStartTime = performance.now();
 
-  const count = getCardCount();
-  const dims = getGridDims(count);
-  GAME_CONFIG.GRID_ROWS = dims.rows;
-  GAME_CONFIG.GRID_COLS = dims.cols;
-
-  // Apply feature flags
-  gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
-  gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
-  gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
-
-  updateCardCountUI();
   buildGrid();
   updateScore();
   updateComboDisplay();
+  updateXrayUI();
 
   S.gameActive = true;
   startTimer();
+  startFadeDecay();
 }
 
 // ─── Handle resize/orientation change ───
@@ -898,6 +1543,12 @@ window.addEventListener('resize', () => {
           c.matched = true;
           c.flipped = true;
           c.element.classList.add('flipped', 'matched');
+        }
+      });
+      // Restore fade levels
+      S.cards.forEach(c => {
+        if (!c.matched && !c.flipped && S.fadeLevel > 0) {
+          c.element.classList.add(`faded-${Math.min(5, S.fadeLevel)}`);
         }
       });
     }
@@ -916,46 +1567,21 @@ function getCardCount() {
   return [12, 16, 20, 24].includes(count) ? count : 16;
 }
 
-function setCardCount(count) {
-  if (![12, 16, 20, 24].includes(count)) return;
-  localStorage.setItem('fade_card_count', count);
-  const dims = getGridDims(count);
-  GAME_CONFIG.GRID_ROWS = dims.rows;
-  GAME_CONFIG.GRID_COLS = dims.cols;
-  updateCardCountUI();
-  playAgain();
-}
-
-function updateCardCountUI() {
-  const count = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
-  document.querySelectorAll('.card-count-btn').forEach(btn => {
-    const btnCount = parseInt(btn.dataset.count, 10);
-    btn.classList.toggle('active', btnCount === count);
-  });
-}
-
 // ─── Button hooks ───
 xrayBtn.addEventListener('click', activateXray);
 shareBtn.addEventListener('click', shareScore);
 replayBtn.addEventListener('click', playAgain);
-
-document.querySelectorAll('.card-count-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const count = parseInt(btn.dataset.count, 10);
-    if (count !== GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS) {
-      setCardCount(count);
-    }
-  });
-});
+backBtn.addEventListener('click', backToMenu);
 
 // ─── Keyboard shortcuts ───
 document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') playAgain();
   if (e.key === 'x' || e.key === 'X') activateXray();
+  if (e.key === 'Escape') backToMenu();
 });
 
 // ─── Go! ───
-initGame();
+initLanding();
 </script>
 </body>
 </html>
