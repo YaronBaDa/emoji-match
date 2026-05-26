@@ -183,6 +183,11 @@
     @media (min-width:500px) {
       .card-back::after { width: 8px; height: 8px; }
     }
+
+    /* ─── Card Count Selector ─── */
+    .card-count-btn { background: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; }
+    .card-count-btn.active { background: #22d3ee; color: #09090b; border-color: #22d3ee; }
+    .card-count-btn:not(.active):hover { background: #3f3f46; color: #f4f4f5; }
   </style>
 </head>
 <body>
@@ -253,6 +258,19 @@
   <!-- ═══ Floating Text Container ═══ -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
+  <!-- ═══ Card Count Selector ═══ -->
+  <div class="flex-shrink-0 pb-2 px-3 flex justify-center">
+    <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
+      <span class="font-mono text-[9px] text-zinc-600 uppercase tracking-wider">Grid</span>
+      <div class="flex gap-1">
+        <button data-count="12" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">12</button>
+        <button data-count="16" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">16</button>
+        <button data-count="20" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">20</button>
+        <button data-count="24" class="card-count-btn font-mono font-bold text-[10px] rounded-sm px-2 py-1 transition-colors">24</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ Game Over Overlay ═══ -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
     <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 shadow-2xl rounded-md px-6 py-7">
@@ -305,14 +323,11 @@ const GAME_CONFIG = {
   ACCELERATE_TIMER: true,
   CYBER_GRID_BG: true,
   EMOJI_SCALE_PERCENT: 80,
-  GRID_ROWS: 6,
-  GRID_COLS: 4,
 };
 
 // ══════════════════════════════════════════════════════════════
 //  GAME CONSTANTS
 // ══════════════════════════════════════════════════════════════
-const TOTAL_PAIRS = Math.floor(GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS / 2);
 const START_TIME = 60;
 
 const ALL_EMOJIS = [
@@ -420,11 +435,12 @@ function calculateCardSize() {
 }
 
 function buildGrid() {
-  S.totalPairs = TOTAL_PAIRS;
+  const count = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
+  S.totalPairs = Math.floor(count / 2);
   S.matchedPairs = 0;
   S.cards = [];
 
-  const emojis = getEmojisForLevel(TOTAL_PAIRS);
+  const emojis = getEmojisForLevel(S.totalPairs);
   const pairs = [...emojis, ...emojis];
   shuffle(pairs);
 
@@ -781,8 +797,9 @@ function shareScore() {
   }
   const visualMap = mapRows.join('\n');
 
+  const cardCount = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
   const text = [
-    `🧠 FADE: 24-CARD CHALLENGE 🧠`,
+    `🧠 FADE: ${cardCount}-CARD CHALLENGE 🧠`,
     `⏱️ ${Math.floor(S.timeLeft)}s | 🕹️ ${S.moves} (avg 32)`,
     `🔥 x${S.maxCombo + 1} | 👑 ${spite.title}`,
     ``,
@@ -849,11 +866,17 @@ function playAgain() {
 function initGame() {
   S.gameActive = false;
 
+  const count = getCardCount();
+  const dims = getGridDims(count);
+  GAME_CONFIG.GRID_ROWS = dims.rows;
+  GAME_CONFIG.GRID_COLS = dims.cols;
+
   // Apply feature flags
   gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
   gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
   gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
 
+  updateCardCountUI();
   buildGrid();
   updateScore();
   updateComboDisplay();
@@ -881,10 +904,49 @@ window.addEventListener('resize', () => {
   }, 200);
 });
 
+function getGridDims(count) {
+  const cols = 4;
+  const rows = count / cols;
+  return { rows, cols };
+}
+
+function getCardCount() {
+  const saved = localStorage.getItem('fade_card_count');
+  const count = saved ? parseInt(saved, 10) : 16;
+  return [12, 16, 20, 24].includes(count) ? count : 16;
+}
+
+function setCardCount(count) {
+  if (![12, 16, 20, 24].includes(count)) return;
+  localStorage.setItem('fade_card_count', count);
+  const dims = getGridDims(count);
+  GAME_CONFIG.GRID_ROWS = dims.rows;
+  GAME_CONFIG.GRID_COLS = dims.cols;
+  updateCardCountUI();
+  playAgain();
+}
+
+function updateCardCountUI() {
+  const count = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
+  document.querySelectorAll('.card-count-btn').forEach(btn => {
+    const btnCount = parseInt(btn.dataset.count, 10);
+    btn.classList.toggle('active', btnCount === count);
+  });
+}
+
 // ─── Button hooks ───
 xrayBtn.addEventListener('click', activateXray);
 shareBtn.addEventListener('click', shareScore);
 replayBtn.addEventListener('click', playAgain);
+
+document.querySelectorAll('.card-count-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const count = parseInt(btn.dataset.count, 10);
+    if (count !== GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS) {
+      setCardCount(count);
+    }
+  });
+});
 
 // ─── Keyboard shortcuts ───
 document.addEventListener('keydown', (e) => {
