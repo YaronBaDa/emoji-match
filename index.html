@@ -71,6 +71,16 @@
     .hero-card.matched { opacity: 0; transform: scale(0.9); }
     .hero-card.faded { filter: grayscale(1) opacity(0.35); border-color: #3f3f46; }
 
+    .landing-title {
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      color: #f4f4f5;
+      text-align: center;
+      line-height: 1;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(34,211,238,0.15);
+    }
     .landing-tagline {
       font-size: 12px;
       color: #a1a1aa;
@@ -120,7 +130,7 @@
     /* ─── Tier Buttons ─── */
     .tier-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 8px;
       margin-bottom: 12px;
     }
@@ -327,6 +337,7 @@
 <!-- ═══ LANDING SCREEN ═══ -->
 <div id="landingScreen" class="screen active">
   <div class="landing-hero">
+    <div class="landing-title">FADE</div>
     <div class="hero-board" id="heroBoard"></div>
     <div class="landing-tagline">Match them before they fade.</div>
   </div>
