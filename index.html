@@ -1168,9 +1168,9 @@ function spawnConfetti(x, y) {
 function startFadeDecay() {
   stopFadeDecay();
   S.fadeLevel = 0;
-  const totalCards = S.cards.length;
-  // Fade stages: every 12 seconds, advance one level on unmatched cards
-  const interval = 12000;
+  // Fade interval scales with card count so bigger boards aren't unfairly rushed
+  // 12 cards ≈ 16s  /  16 cards ≈ 19s  /  20 cards ≈ 21s  /  24 cards ≈ 23s per level
+  const interval = 9000 + S.totalPairs * 1200;
   S.fadeTimer = setInterval(() => {
     if (!S.gameActive) return;
     S.fadeLevel++;
