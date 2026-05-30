@@ -430,7 +430,7 @@
   </div>
 
   <!-- X-Ray -->
-  <div class="flex-shrink-0 pb-1.5 px-3 flex justify-center">
+  <div id="xrayContainer" class="flex-shrink-0 pb-1.5 px-3 flex justify-center">
     <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
       <button id="xrayBtn" class="font-mono font-bold text-[10px] text-zinc-100 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-sm px-3 py-1.5 transition-colors border border-zinc-700/60">
         👁️ X-RAY
@@ -443,8 +443,8 @@
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
   <!-- Game Over Overlay -->
-  <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-    <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 shadow-2xl rounded-md px-6 py-7">
+  <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 overflow-y-auto">
+    <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 shadow-2xl rounded-md px-6 py-7 max-h-[85dvh] overflow-y-auto">
       <div id="overlayHeader" class="text-3xl mb-1">💀</div>
       <div id="overlayTitle" class="text-xl font-black tracking-tight text-zinc-100">Game Over</div>
 
@@ -456,6 +456,12 @@
 
       <!-- Verdict -->
       <div id="verdictDisplay" class="text-xs text-zinc-300 font-mono px-2 py-1 bg-zinc-800/40 rounded">—</div>
+
+      <!-- Flip Efficiency -->
+      <div id="flipSummary" class="flex items-center gap-2 text-xs font-mono text-zinc-400 px-2 py-1 bg-zinc-800/40 rounded">
+        <span id="flipEmoji">🐢</span>
+        <span id="flipLabel">—</span>
+      </div>
 
       <!-- Tempo Map -->
       <div id="tempoMap" class="tempo-map w-full mt-1"></div>
@@ -554,6 +560,8 @@ const S = {
   moves: 0,
   flipHistory: [],
   pairTimes: [],
+  totalFlips: 0,
+  flipCounts: [],
   timeLeft: START_TIME,
   maxTime: START_TIME,
   totalPairs: 0,
@@ -619,6 +627,7 @@ const floatContainer= $('floatingContainer');
 const xrayBtn       = $('xrayBtn');
 const xrayLabel     = $('xrayLabel');
 const xrayHud       = $('xrayHud');
+const xrayContainer = $('xrayContainer');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
@@ -632,6 +641,8 @@ const tomorrowCountdown = $('tomorrowCountdown');
 const shareBtn      = $('shareBtn');
 const replayBtn     = $('replayBtn');
 const backBtn       = $('backBtn');
+const flipEmoji     = $('flipEmoji');
+const flipLabel     = $('flipLabel');
 const gameEl        = $('gameScreen');
 const dailyDate     = $('dailyDate');
 const dailyStreak   = $('dailyStreak');
@@ -888,6 +899,8 @@ function buildGrid() {
   S.totalPairs = Math.floor(count / 2);
   S.matchedPairs = 0;
   S.cards = [];
+  S.totalFlips = 0;
+  S.flipCounts = new Array(count).fill(0);
 
   const seed = S.mode === 'daily' ? getDailySeed() : null;
   const emojis = getEmojisForLevel(S.totalPairs, seed);
@@ -974,6 +987,8 @@ function onCardClick(index) {
   card.flipped = true;
   card.element.classList.add('flipped');
   S.flippedIndices.push(index);
+  S.totalFlips++;
+  S.flipCounts[index]++;
 
   if (S.flippedIndices.length === 2) {
     S.isProcessing = true;
@@ -1261,6 +1276,7 @@ function victory() {
 
 function showOverlay(headerEmoji, titleText) {
   gameEl.classList.remove('adrenaline-mode');
+  xrayContainer.classList.add('hidden');
 
   overlayHeader.textContent = headerEmoji;
   overlayTitle.textContent = titleText;
@@ -1277,6 +1293,15 @@ function showOverlay(headerEmoji, titleText) {
 
   // Verdict
   verdictDisplay.textContent = generateVerdict();
+
+  // Flip efficiency
+  const minFlips = S.matchedPairs * 2;
+  const extraFlips = Math.max(0, S.totalFlips - minFlips);
+  let animal = '🐢', label = 'Turtle pace';
+  if (extraFlips <= 3) { animal = '🐆'; label = 'Cheetah speed'; }
+  else if (extraFlips <= 5) { animal = '🐇'; label = 'Rabbit hops'; }
+  flipEmoji.textContent = animal;
+  flipLabel.textContent = `${S.totalFlips} flips · ${label}`;
 
   // Tomorrow countdown (daily mode)
   if (S.mode === 'daily') {
@@ -1495,6 +1520,7 @@ function playAgain() {
   stopTimer();
   stopFadeDecay();
   gameOverlay.classList.add('hidden');
+  xrayContainer.classList.remove('hidden');
 
   S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
   S.flipHistory = []; S.pairTimes = [];
@@ -1517,6 +1543,7 @@ function backToMenu() {
   stopTimer();
   stopFadeDecay();
   gameOverlay.classList.add('hidden');
+  xrayContainer.classList.remove('hidden');
   if (heroInterval) clearInterval(heroInterval);
   showScreen('landing');
   initLanding();
