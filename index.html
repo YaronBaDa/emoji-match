@@ -313,6 +313,29 @@
     .tempo-slow { background: rgba(239,68,68,0.35); color: #f87171; }
     .tempo-empty { background: rgba(39,39,42,0.5); color: #52525b; }
 
+    /* ─── Victory Banner ─── */
+    #victoryBanner {
+      position: fixed; top: 12%; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 40; pointer-events: none;
+      opacity: 0; transform: scale(0.5);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #victoryBanner.show {
+      opacity: 1; transform: scale(1);
+    }
+    #victoryBanner .victory-text {
+      font-size: 48px; font-weight: 900;
+      letter-spacing: -0.04em;
+      color: #f4f4f5;
+      text-shadow: 0 0 40px rgba(34,211,238,0.4), 0 0 80px rgba(34,211,238,0.15);
+      background: rgba(9,9,11,0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 8px 28px;
+    }
+
     /* ─── Feature Flags ─── */
     .compact-mode #hudFull { display: none; }
     #gameScreen:not(.compact-mode) #hudCompact { display: none; }
@@ -585,48 +608,25 @@
   <!-- Floating Text Container -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
 
+  <!-- Victory Banner -->
+  <div id="victoryBanner" class="hidden">
+    <div class="victory-text">Victory!</div>
+  </div>
+
   <!-- Game Over Overlay -->
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4">
-    <div class="overlay-content flex flex-col items-center gap-2 w-full max-w-xs text-center bg-zinc-900 border border-zinc-800/80 shadow-2xl rounded-md px-4 py-4">
-      <div id="overlayHeader" class="text-3xl mb-1">💀</div>
-      <div id="overlayTitle" class="text-xl font-black tracking-tight text-zinc-100">Game Over</div>
-
-      <!-- Percentile Hero -->
-      <div class="mt-1 text-center">
-        <div class="text-[9px] text-zinc-600 uppercase tracking-widest font-mono">estimated percentile</div>
-        <div class="text-3xl font-black text-cyan-400 font-mono" id="percentileDisplay">Top —%</div>
-      </div>
-
-      <!-- Verdict -->
-      <div id="verdictDisplay" class="text-xs text-zinc-300 font-mono px-2 py-1 bg-zinc-800/40 rounded">—</div>
-
-      <!-- Flip Efficiency -->
-      <div id="flipSummary" class="flex items-center gap-2 text-[10px] font-mono text-zinc-400 px-2 py-0.5 bg-zinc-800/40 rounded">
-        <span id="flipEmoji">🐢</span>
-        <span id="flipLabel">—</span>
-      </div>
+    <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900 border border-zinc-800/80 shadow-2xl rounded-md px-4 py-4">
 
       <!-- Tempo Map -->
       <div id="tempoMap" class="tempo-map w-full"></div>
 
-      <!-- Secondary Stats -->
-      <div class="flex items-center gap-6 font-mono text-xs">
-        <div class="text-center">
-          <div class="text-base font-bold text-orange-400"><span id="finalCombo">0</span>x</div>
-          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Best Combo</div>
-        </div>
-        <div class="text-center">
-          <div class="text-base font-bold text-cyan-400"><span id="finalMoves">0</span></div>
-          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Moves</div>
-        </div>
-        <div class="text-center">
-          <div class="text-base font-bold text-zinc-100"><span id="finalScore">0</span></div>
-          <div class="text-[9px] text-zinc-600 uppercase tracking-wider">Score</div>
-        </div>
+      <!-- Simplified Stats -->
+      <div id="summaryStats" class="text-sm font-mono text-zinc-300">
+        —
       </div>
 
       <!-- Countdown (daily mode) -->
-      <div id="tomorrowCountdown" class="hidden text-[10px] text-zinc-500 font-mono mt-0.5">Tomorrow's challenge in —</div>
+      <div id="tomorrowCountdown" class="hidden text-[10px] text-zinc-500 font-mono">Tomorrow's challenge in —</div>
 
       <button id="shareBtn" class="w-full font-mono font-bold text-[11px] flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-md px-4 py-2 text-zinc-100 transition-colors border border-zinc-700/60">
         <span>📤</span> Share
@@ -816,6 +816,8 @@ const xrayContainer = $('xrayContainer');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
+const summaryStats  = $('summaryStats');
+const victoryBanner = $('victoryBanner');
 const finalScore    = $('finalScore');
 const finalCombo    = $('finalCombo');
 const finalMoves    = $('finalMoves');
@@ -1704,7 +1706,12 @@ function gameOver() {
   if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
   S.isBoardLocked = false;
   gameEl.classList.remove('board-locked');
-  showOverlay('💀', 'Game Over');
+  // Make sure victory banner is hidden on game over
+  if (victoryBanner) {
+    victoryBanner.classList.remove('show');
+    victoryBanner.classList.add('hidden');
+  }
+  showOverlay();
 }
 
 function victory() {
@@ -1715,11 +1722,26 @@ function victory() {
   S.isBoardLocked = false;
   gameEl.classList.remove('board-locked');
   underlayGrid.classList.add('underlay-victory');
+
+  // Show extravagant Victory banner on the game screen
+  if (victoryBanner) {
+    victoryBanner.classList.remove('hidden');
+    // Force reflow so transition plays
+    void victoryBanner.offsetWidth;
+    victoryBanner.classList.add('show');
+  }
+
   // Brighten bg + sparkle for 3s before showing summary
-  setTimeout(() => showOverlay('🏆', 'Victory!'), 3000);
+  setTimeout(() => {
+    if (victoryBanner) {
+      victoryBanner.classList.remove('show');
+      setTimeout(() => victoryBanner.classList.add('hidden'), 400);
+    }
+    showOverlay('Victory!');
+  }, 3000);
 }
 
-function showOverlay(headerEmoji, titleText) {
+function showOverlay() {
   gameEl.classList.remove('adrenaline-mode');
   xrayContainer.classList.add('hidden');
 
@@ -1731,30 +1753,14 @@ function showOverlay(headerEmoji, titleText) {
   if (hudFull) hudFull.classList.add('hidden');
   if (timerBar) timerBar.classList.add('hidden');
 
-  overlayHeader.textContent = headerEmoji;
-  overlayTitle.textContent = titleText;
-  finalScore.textContent = S.score;
-  finalCombo.textContent = S.maxCombo + 1;
-  finalMoves.textContent = S.moves;
-
-  // Percentile (estimated from hardcoded curve)
-  const pct = computePercentile(S.score);
-  percentileDisplay.textContent = `Top ${pct}%`;
+  // Simplified stats: "Completed in X moves and Y.X minutes"
+  const elapsed = S.sessionStartTime ? ((performance.now() - S.sessionStartTime) / 60000).toFixed(1) : '0.0';
+  if (summaryStats) {
+    summaryStats.textContent = `Completed in ${S.moves} moves and ${elapsed} minutes`;
+  }
 
   // Tempo map
   renderTempoMap();
-
-  // Verdict
-  verdictDisplay.textContent = generateVerdict();
-
-  // Flip efficiency
-  const minFlips = S.matchedPairs * 2;
-  const extraFlips = Math.max(0, S.totalFlips - minFlips);
-  let animal = '🐢', label = 'Turtle pace';
-  if (extraFlips <= 3) { animal = '🐆'; label = 'Cheetah speed'; }
-  else if (extraFlips <= 5) { animal = '🐇'; label = 'Rabbit hops'; }
-  flipEmoji.textContent = animal;
-  flipLabel.textContent = `${S.totalFlips} flips · ${label}`;
 
   // Tomorrow countdown (daily mode)
   if (S.mode === 'daily') {
@@ -1770,7 +1776,7 @@ function showOverlay(headerEmoji, titleText) {
   gameOverlay.classList.remove('hidden');
 
   // Persist stats
-  persistStats(headerEmoji === '🏆');
+  persistStats(S.matchedPairs >= S.totalPairs);
 }
 
 function computePercentile(score) {
@@ -1976,6 +1982,12 @@ function playAgain() {
   if (hudFull) hudFull.classList.remove('hidden');
   if (timerBar) timerBar.classList.remove('hidden');
 
+  // Hide victory banner
+  if (victoryBanner) {
+    victoryBanner.classList.remove('show');
+    victoryBanner.classList.add('hidden');
+  }
+
   S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
   S.flipHistory = []; S.pairTimes = [];
   S.matchedPairs = 0; S.flippedIndices = [];
@@ -2015,6 +2027,12 @@ function backToMenu() {
   if (hudCompact) hudCompact.classList.remove('hidden');
   if (hudFull) hudFull.classList.remove('hidden');
   if (timerBar) timerBar.classList.remove('hidden');
+
+  // Hide victory banner
+  if (victoryBanner) {
+    victoryBanner.classList.remove('show');
+    victoryBanner.classList.add('hidden');
+  }
 
   underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
   if (heroInterval) clearInterval(heroInterval);
