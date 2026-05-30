@@ -626,6 +626,7 @@
         <span id="comboDisplayCompact" class="hidden items-center gap-1 text-amber-400 font-bold font-mono text-xs">
           <span>🔥</span><span id="comboCountCompact">x0</span>
         </span>
+        <span id="elapsedDisplayCompact" class="font-mono text-[10px] text-cyan-400 font-bold">0:00.00</span>
       </div>
     </div>
   </div>
@@ -846,6 +847,7 @@ const comboDisplay  = $('comboDisplay');
 const comboCount    = $('comboCount');
 const comboDisplayCompact = $('comboDisplayCompact');
 const comboCountCompact = $('comboCountCompact');
+const elapsedDisplayCompact = $('elapsedDisplayCompact');
 const floatContainer= $('floatingContainer');
 const gameStatusAnnouncer = $('gameStatusAnnouncer');
 const bannerInner = $('bannerInner');
@@ -1092,7 +1094,7 @@ function startDaily() {
 
 function startGame(count) {
   showScreen('game');
-  const dims = getGridDims(count);
+  const dims = getGridLayout(count);
   GAME_CONFIG.GRID_ROWS = dims.rows;
   GAME_CONFIG.GRID_COLS = dims.cols;
   localStorage.setItem('fade_card_count', count);
@@ -1385,6 +1387,8 @@ function updateElapsedDisplay() {
   const secs = Math.floor(S.elapsedTime % 60);
   const frac = Math.floor((S.elapsedTime % 1) * 100);
   const text = `${mins}:${secs.toString().padStart(2,"0")}.${frac.toString().padStart(2,"0")}`;
+  if (elapsedDisplayCompact) elapsedDisplayCompact.textContent = text;
+  updateTimerBar();
 }
 
 function triggerClairvoyance() {
