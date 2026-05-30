@@ -331,24 +331,76 @@
       .card-back::after { width: 8px; height: 8px; }
     }
 
-    /* ─── Underlay Image Reveal ─── */
+    /* ─── Underlay Figurative Reveal ─── */
+    /* The underlay is a single cohesive mandala/eye symbol.
+       As matched cards fade to transparent, this hidden figure
+       is progressively discovered beneath the grid.             */
+    #gridWrapper { position: relative; }
+
     #underlayGrid {
       position: absolute;
-      display: grid;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
       z-index: 0;
       pointer-events: none;
-      opacity: 0.55;
+      border-radius: 12px;
+      overflow: hidden;
     }
-    .underlay-cell {
-      background-size: cover;
-      background-position: center;
-      border-radius: 6px;
-      transition: opacity 0.5s ease;
+
+    /* The actual figurative artwork – a stylised all-seeing eye /
+       mandala built from layered radial & conic gradients.      */
+    #underlayGrid::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 16px;
+      background:
+        /* central pupil glow */
+        radial-gradient(ellipse 26% 22% at 50% 50%, rgba(34,211,238,0.30) 0%, transparent 55%),
+        /* inner iris ring (amber) */
+        radial-gradient(circle at 50% 50%, transparent 20%, rgba(251,191,36,0.14) 25%, transparent 30%),
+        /* middle iris ring (purple) */
+        radial-gradient(circle at 50% 50%, transparent 34%, rgba(168,85,247,0.10) 39%, transparent 44%),
+        /* outer halo (cyan) */
+        radial-gradient(circle at 50% 50%, transparent 46%, rgba(34,211,238,0.07) 52%, transparent 58%),
+        /* conic rays – the “eyelash” spokes */
+        repeating-conic-gradient(from 8deg at 50% 50%,
+          rgba(255,255,255,0.020) 0deg 3deg,
+          transparent 3deg 15deg
+        ),
+        /* deep base field */
+        radial-gradient(circle at 50% 50%, #111118 0%, #08080d 100%);
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.55);
+      opacity: 0.88;
     }
+
+    /* Pupil orb – the focal point of the symbol */
+    #underlayGrid::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 13%; height: 11%;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle at 38% 38%, rgba(255,255,255,0.30) 0%, rgba(34,211,238,0.40) 35%, transparent 72%);
+      border-radius: 50%;
+      filter: blur(0.5px);
+      opacity: 0.9;
+    }
+
     .card.matched.reveal-underlay {
       opacity: 0 !important;
-      transition: opacity 0.6s ease !important;
+      transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s !important;
       pointer-events: none !important;
+    }
+
+    /* Breathe animation when the figure is partially revealed */
+    @keyframes underlayBreathe {
+      0%, 100% { opacity: 0.78; transform: scale(1); }
+      50%   { opacity: 0.96; transform: scale(1.025); }
+    }
+    .underlay-breathe::before {
+      animation: underlayBreathe 3.5s ease-in-out infinite;
     }
 
     /* ─── Golden Pair Glow ─── */
@@ -1174,6 +1226,10 @@ function handleMatch(i1, i2) {
   if (GAME_CONFIG.UNDERLAY_REVEAL) {
     c1.element.classList.add('reveal-underlay');
     c2.element.classList.add('reveal-underlay');
+    // Start the subtle breathing animation once the figure is partially visible
+    if (S.matchedPairs >= 0 && !underlayGrid.classList.contains('underlay-breathe')) {
+      underlayGrid.classList.add('underlay-breathe');
+    }
   }
 
   S.matchedPairs++;
@@ -1290,24 +1346,14 @@ function handleMismatch(i1, i2) {
 // ══════════════════════════════════════════════════════════════
 function buildUnderlayGrid(cellSize, totalCards) {
   if (!GAME_CONFIG.UNDERLAY_REVEAL) return;
-  underlayGrid.innerHTML = '';
-  underlayGrid.style.gridTemplateColumns = `repeat(${GAME_CONFIG.GRID_COLS}, ${cellSize}px)`;
-  underlayGrid.style.gridTemplateRows = `repeat(${GAME_CONFIG.GRID_ROWS}, ${cellSize}px)`;
-  underlayGrid.style.gap = `${GRID_GAP}px`;
-  underlayGrid.style.justifyContent = 'center';
-  underlayGrid.style.alignContent = 'center';
 
-  // Abstract geometric pattern for the underlay (CSS-only, no external image)
-  for (let i = 0; i < totalCards; i++) {
-    const cell = document.createElement('div');
-    cell.className = 'underlay-cell';
-    // Generate a unique abstract swatch per cell using CSS conic-gradient
-    const hue = (i * 47 + 200) % 360;
-    const sat = 30 + (i % 5) * 10;
-    const light = 12 + (i % 4) * 4;
-    cell.style.background = `conic-gradient(from ${i * 30}deg, hsl(${hue},${sat}%,${light}%), hsl(${(hue+60)%360},${sat}%,${light+6}%))`;
-    underlayGrid.appendChild(cell);
-  }
+  // Size the underlay container to exactly match the card grid
+  const totalW = (GAME_CONFIG.GRID_COLS * cellSize) + ((GAME_CONFIG.GRID_COLS - 1) * GRID_GAP);
+  const totalH = (GAME_CONFIG.GRID_ROWS * cellSize) + ((GAME_CONFIG.GRID_ROWS - 1) * GRID_GAP);
+
+  underlayGrid.innerHTML = '';
+  underlayGrid.style.width = `${totalW}px`;
+  underlayGrid.style.height = `${totalH}px`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1906,6 +1952,7 @@ function playAgain() {
   S.isBoardLocked = false; S.boardLockTimer = null;
   S.mistakeTracker = {}; S.lastMistakeKey = null;
   S.goldenRevealed = false;
+  underlayGrid.classList.remove('underlay-breathe');
 
   updateXrayUI();
 
@@ -1927,6 +1974,7 @@ function backToMenu() {
   gameEl.classList.remove('board-locked');
   gameOverlay.classList.add('hidden');
   xrayContainer.classList.remove('hidden');
+  underlayGrid.classList.remove('underlay-breathe');
   if (heroInterval) clearInterval(heroInterval);
   showScreen('landing');
   initLanding();
@@ -1945,6 +1993,7 @@ function initGame() {
   S.mistakeTracker = {};
   S.lastMistakeKey = null;
   S.goldenRevealed = false;
+  underlayGrid.classList.remove('underlay-breathe');
 
   buildGrid();
   updateScore();
