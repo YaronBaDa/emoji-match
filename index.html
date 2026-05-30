@@ -330,6 +330,101 @@
     @media (min-width:500px) {
       .card-back::after { width: 8px; height: 8px; }
     }
+
+    /* ─── Underlay Image Reveal ─── */
+    #underlayGrid {
+      position: absolute;
+      display: grid;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+    .underlay-cell {
+      background-size: cover;
+      background-position: center;
+      border-radius: 6px;
+      transition: opacity 0.5s ease;
+    }
+    .card.matched.reveal-underlay {
+      opacity: 0 !important;
+      transition: opacity 0.6s ease !important;
+      pointer-events: none !important;
+    }
+
+    /* ─── Golden Pair Glow ─── */
+    @keyframes goldenPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.35); }
+      50% { box-shadow: 0 0 14px 3px rgba(251,191,36,0.45); }
+    }
+    .golden-pair .card-inner {
+      animation: goldenPulse 1.4s ease-in-out infinite;
+      border-radius: 6px;
+    }
+    .golden-pair .card-front {
+      border-color: rgba(251,191,36,0.6) !important;
+    }
+
+    /* ─── Mimic Trap Flash ─── */
+    @keyframes mimicFlash {
+      0%,100% { border-color: rgba(239,68,68,0.25); }
+      50% { border-color: rgba(239,68,68,0.9); box-shadow: 0 0 10px rgba(239,68,68,0.4); }
+    }
+    .mimic-trap .card-inner {
+      animation: mimicFlash 0.7s ease-in-out infinite;
+    }
+    .mimic-trap .card-front {
+      border-color: rgba(239,68,68,0.5) !important;
+    }
+
+    /* ─── Screen Shake ─── */
+    @keyframes screenShake {
+      0%,100% { transform: translate(0,0); }
+      10% { transform: translate(-10px,-5px); }
+      20% { transform: translate(10px,5px); }
+      30% { transform: translate(-8px,8px); }
+      40% { transform: translate(8px,-8px); }
+      50% { transform: translate(-5px,-5px); }
+      60% { transform: translate(5px,5px); }
+      70% { transform: translate(-3px,3px); }
+      80% { transform: translate(3px,-3px); }
+    }
+    .screen-shake {
+      animation: screenShake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* ─── X-Ray Auto Flash Overlay ─── */
+    @keyframes xrayFlashOverlay {
+      0% { opacity: 0; }
+      8% { opacity: 1; background: radial-gradient(circle at center, rgba(34,211,238,0.18) 0%, transparent 65%); }
+      92% { opacity: 1; background: radial-gradient(circle at center, rgba(34,211,238,0.18) 0%, transparent 65%); }
+      100% { opacity: 0; }
+    }
+    .xray-flash-overlay {
+      position: fixed; inset: 0; pointer-events: none; z-index: 25;
+      animation: xrayFlashOverlay 0.6s ease-out forwards;
+    }
+
+    /* ─── Board Lock (Mimic Penalty) ─── */
+    .board-locked::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,0.22);
+      pointer-events: all;
+    }
+    .board-lock-timer {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      z-index: 41; font-size: 13px; font-weight: 800; color: #ef4444;
+      font-family: 'Space Mono', monospace; pointer-events: none;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 12px rgba(239,68,68,0.5);
+    }
+    /* Hide matched cards with underlay reveal instead of vanish */
+    .reveal-mode .card.matched {
+      opacity: 0;
+      transition: opacity 0.5s ease 0.15s;
+      pointer-events: none;
+    }
+
   </style>
 </head>
 <body>
@@ -426,6 +521,7 @@
 
   <!-- Grid -->
   <div id="gridWrapper" class="flex-1 min-h-0 flex items-center justify-center px-3 pb-1 overflow-hidden" style="max-height:66vh">
+  <div id="underlayGrid"></div>
     <div id="grid" class="grid grid-cols-4 gap-1.5 grid-fade-in"></div>
   </div>
 
@@ -512,6 +608,12 @@ const GAME_CONFIG = {
   ACCELERATE_TIMER: true,
   CYBER_GRID_BG: true,
   EMOJI_SCALE_PERCENT: 80,
+  UNDERLAY_REVEAL: true,
+  GOLDEN_PAIR: true,
+  MIMIC_TRAP: true,
+  AMNESIA_PENALTY: true,
+  XRAY_RARE_PAIR: true,
+
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -579,6 +681,15 @@ const S = {
   fadeLevel: 0,
   sessionStartTime: 0,
   mode: 'classic',
+  goldenEmoji: null,
+  mimicEmoji: null,
+  xrayTriggerEmoji: null,
+  isBoardLocked: false,
+  boardLockTimer: null,
+  mistakeTracker: {},
+  lastMistakeKey: null,
+  goldenRevealed: false,
+
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -649,6 +760,8 @@ const gameEl        = $('gameScreen');
 const dailyDate     = $('dailyDate');
 const dailyStreak   = $('dailyStreak');
 const dailyCountdown= $('dailyCountdown');
+const underlayGrid    = $('underlayGrid');
+
 const dailyCard     = $('dailyCard');
 
 // ══════════════════════════════════════════════════════════════
@@ -876,7 +989,8 @@ function startGame(count) {
 
   // Apply feature flags
   gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
-  gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES);
+  gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES && !GAME_CONFIG.UNDERLAY_REVEAL);
+  gameEl.classList.toggle('reveal-mode', GAME_CONFIG.UNDERLAY_REVEAL);
   gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
 
   initGame();
@@ -920,6 +1034,18 @@ function buildGrid() {
     shuffle(pairs);
   }
 
+  // ─── Designate special pairs for this round ───
+  const uniqueEmojis = [...new Set(pairs)];
+  // Golden Pair: 3x score multiplier (random among all pairs)
+  S.goldenEmoji = uniqueEmojis[Math.floor(Math.random() * uniqueEmojis.length)];
+  // Mimic Trap: clicking its second card locks the board (different from golden)
+  const remaining = uniqueEmojis.filter(e => e !== S.goldenEmoji);
+  S.mimicEmoji = remaining[Math.floor(Math.random() * remaining.length)];
+  // X-Ray Rare Pair: matching this triggers an auto X-Ray flash
+  const remaining2 = remaining.filter(e => e !== S.mimicEmoji);
+  S.xrayTriggerEmoji = remaining2.length > 0 ? remaining2[Math.floor(Math.random() * remaining2.length)] : null;
+  S.goldenRevealed = false;
+
   const size = calculateCardSize();
   const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
 
@@ -935,6 +1061,9 @@ function buildGrid() {
 
   gridEl.innerHTML = '';
   S.flippedIndices = [];
+
+  // Build underlay image grid to reveal beneath matched cards
+  buildUnderlayGrid(size, pairs.length);
 
   pairs.forEach((emoji, idx) => {
     const cardWrapper = document.createElement('div');
@@ -967,6 +1096,10 @@ function buildGrid() {
 
     gridEl.appendChild(cardWrapper);
 
+    // Tag special cards with visual markers before hiding them
+    if (emoji === S.goldenEmoji) cardWrapper.classList.add('golden-pair');
+    if (emoji === S.mimicEmoji) cardWrapper.classList.add('mimic-trap');
+
     S.cards.push({
       emoji,
       matched: false,
@@ -983,6 +1116,7 @@ function buildGrid() {
 function onCardClick(index) {
   if (!S.gameActive) return;
   if (S.isProcessing) return;
+  if (S.isBoardLocked) return; // Mimic trap penalty lock
 
   const card = S.cards[index];
   if (!card || card.matched || card.flipped) return;
@@ -1000,6 +1134,17 @@ function onCardClick(index) {
     S.moves++;
     movesDisplay.textContent = S.moves;
     movesDisplayCompact.textContent = S.moves;
+
+    // Mimic Trap: if either flipped card is the mimic, the board locks for 3s
+    const firstIdx = S.flippedIndices[0];
+    const secondIdx = S.flippedIndices[1];
+    const firstCard = S.cards[firstIdx];
+    const secondCard = S.cards[secondIdx];
+    if (GAME_CONFIG.MIMIC_TRAP &&
+        (firstCard.emoji === S.mimicEmoji || secondCard.emoji === S.mimicEmoji)) {
+      triggerMimicPenalty();
+    }
+
     setTimeout(checkMatch, 400);
   }
 }
@@ -1025,6 +1170,12 @@ function handleMatch(i1, i2) {
   c1.element.classList.add('matched');
   c2.element.classList.add('matched');
 
+  // Underlay Reveal: matched cards fade to show background image beneath
+  if (GAME_CONFIG.UNDERLAY_REVEAL) {
+    c1.element.classList.add('reveal-underlay');
+    c2.element.classList.add('reveal-underlay');
+  }
+
   S.matchedPairs++;
 
   const now = performance.now();
@@ -1037,14 +1188,24 @@ function handleMatch(i1, i2) {
 
   if (S.combo > S.maxCombo) S.maxCombo = S.combo;
 
-  const multiplier = S.combo + 1;
-  const points = BASE_SCORE * multiplier;
-  S.score += points;
-
   addTime(MATCH_TIME_BONUS);
 
   const midX = (c1.element.getBoundingClientRect().left + c2.element.getBoundingClientRect().right) / 2;
   const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 14;
+
+  let multiplier = S.combo + 1;
+
+  // Golden Pair: 3x multiplier on this match
+  const isGolden = (c1.emoji === S.goldenEmoji);
+  if (GAME_CONFIG.GOLDEN_PAIR && isGolden) {
+    multiplier = Math.max(multiplier, 3);
+    S.goldenRevealed = true;
+    showFloatingText('✨ GOLDEN ✨', midX, midY - 28);
+  }
+
+  const points = BASE_SCORE * multiplier;
+  S.score += points;
+
   const label = S.combo >= 1 ? `+${points}x${multiplier}` : `+${points}`;
   showFloatingText(label, midX, midY);
 
@@ -1059,6 +1220,11 @@ function handleMatch(i1, i2) {
 
   S.flipHistory.push(S.combo >= 3 ? '🔥' : '🟩');
   S.pairTimes.push(performance.now() - S.sessionStartTime);
+
+  // X-Ray Rare Pair: matching the trigger emoji auto-flashes all face-down cards for 0.6s
+  if (GAME_CONFIG.XRAY_RARE_PAIR && c1.emoji === S.xrayTriggerEmoji) {
+    triggerXrayFlash();
+  }
 
   updateScore();
   updateComboDisplay();
@@ -1087,6 +1253,28 @@ function handleMismatch(i1, i2) {
 
   S.flipHistory.push('🟥');
 
+  // ─── Golden Pair shuffle penalty ───
+  // If a player reveals ONE golden card but mismatches it,
+  // that golden card + its pair must swap with two other unrevealed cards.
+  if (GAME_CONFIG.GOLDEN_PAIR && !S.goldenRevealed) {
+    const goldenFlipped = (c1.emoji === S.goldenEmoji) ? i1 : (c2.emoji === S.goldenEmoji) ? i2 : -1;
+    if (goldenFlipped !== -1) {
+      setTimeout(() => shuffleGoldenPair(goldenFlipped), 520);
+    }
+  }
+
+  // ─── Amnesia Penalty: track identical mistakes ───
+  if (GAME_CONFIG.AMNESIA_PENALTY) {
+    const key = [i1, i2].sort((a,b) => a-b).join(',');
+    S.mistakeTracker[key] = (S.mistakeTracker[key] || 0) + 1;
+    S.lastMistakeKey = key;
+    if (S.mistakeTracker[key] >= 3) {
+      // Reset tracker for this pair and trigger clown penalty
+      S.mistakeTracker[key] = 0;
+      setTimeout(() => applyClownPenalty(i1, i2), 520);
+    }
+  }
+
   setTimeout(() => {
     el1.classList.remove('flipped','mismatch');
     el2.classList.remove('flipped','mismatch');
@@ -1095,6 +1283,183 @@ function handleMismatch(i1, i2) {
     S.flippedIndices = [];
     S.isProcessing = false;
   }, 500);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  UNDERLAY GRID
+// ══════════════════════════════════════════════════════════════
+function buildUnderlayGrid(cellSize, totalCards) {
+  if (!GAME_CONFIG.UNDERLAY_REVEAL) return;
+  underlayGrid.innerHTML = '';
+  underlayGrid.style.gridTemplateColumns = `repeat(${GAME_CONFIG.GRID_COLS}, ${cellSize}px)`;
+  underlayGrid.style.gridTemplateRows = `repeat(${GAME_CONFIG.GRID_ROWS}, ${cellSize}px)`;
+  underlayGrid.style.gap = `${GRID_GAP}px`;
+  underlayGrid.style.justifyContent = 'center';
+  underlayGrid.style.alignContent = 'center';
+
+  // Abstract geometric pattern for the underlay (CSS-only, no external image)
+  for (let i = 0; i < totalCards; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'underlay-cell';
+    // Generate a unique abstract swatch per cell using CSS conic-gradient
+    const hue = (i * 47 + 200) % 360;
+    const sat = 30 + (i % 5) * 10;
+    const light = 12 + (i % 4) * 4;
+    cell.style.background = `conic-gradient(from ${i * 30}deg, hsl(${hue},${sat}%,${light}%), hsl(${(hue+60)%360},${sat}%,${light+6}%))`;
+    underlayGrid.appendChild(cell);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GOLDEN PAIR SHUFFLE
+// ══════════════════════════════════════════════════════════════
+function shuffleGoldenPair(goldenFlippedIndex) {
+  if (!S.gameActive) return;
+  const goldenCard = S.cards[goldenFlippedIndex];
+  const goldenEmoji = goldenCard.emoji;
+
+  // Find the OTHER golden card (the pair)
+  const otherGoldenIdx = S.cards.findIndex((c, idx) =>
+    idx !== goldenFlippedIndex && c.emoji === goldenEmoji && !c.matched
+  );
+  if (otherGoldenIdx === -1) return;
+
+  // Collect 2 random unrevealed, unmatched non-golden cards
+  const candidates = S.cards
+    .map((c, idx) => ({ c, idx }))
+    .filter(({ c, idx }) =>
+      !c.matched && !c.flipped && c.emoji !== goldenEmoji
+    );
+
+  if (candidates.length < 2) return;
+
+  // Shuffle candidates and pick 2
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const swapA = candidates[0];
+  const swapB = candidates[1];
+
+  // Perform swap in data
+  const tempEmoji = S.cards[otherGoldenIdx].emoji;
+  S.cards[otherGoldenIdx].emoji = swapA.c.emoji;
+  S.cards[swapA.idx].emoji = tempEmoji;
+
+  // Perform swap in DOM (front text + special classes)
+  const otherEl = S.cards[otherGoldenIdx].element;
+  const swapAEl = swapA.c.element;
+
+  const otherFront = otherEl.querySelector('.card-front');
+  const swapAFront = swapAEl.querySelector('.card-front');
+  const tmpText = otherFront.textContent;
+  otherFront.textContent = swapAFront.textContent;
+  swapAFront.textContent = tmpText;
+
+  // Transfer special classes
+  otherEl.classList.remove('golden-pair');
+  swapAEl.classList.add('golden-pair');
+
+  // Brief flash to signal the shuffle happened
+  [otherEl, swapAEl, S.cards[goldenFlippedIndex].element, swapB.c.element].forEach(el => {
+    el.style.transition = 'transform 0.2s ease';
+    el.style.transform = 'scale(0.92)';
+    setTimeout(() => { el.style.transform = ''; }, 220);
+  });
+
+  // If the swapped-in card was the mimic, update mimic class too
+  if (S.cards[otherGoldenIdx].emoji === S.mimicEmoji) {
+    otherEl.classList.add('mimic-trap');
+    swapAEl.classList.remove('mimic-trap');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MIMIC TRAP PENALTY
+// ══════════════════════════════════════════════════════════════
+function triggerMimicPenalty() {
+  if (S.isBoardLocked) return;
+  S.isBoardLocked = true;
+  gameEl.classList.add('board-locked');
+
+  const timerEl = document.createElement('div');
+  timerEl.className = 'board-lock-timer';
+  timerEl.textContent = '⚠️ BOARD LOCKED — 3s';
+  document.body.appendChild(timerEl);
+
+  let remaining = 3;
+  const countdown = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      timerEl.textContent = `⚠️ BOARD LOCKED — ${remaining}s`;
+    } else {
+      clearInterval(countdown);
+    }
+  }, 1000);
+
+  S.boardLockTimer = setTimeout(() => {
+    S.isBoardLocked = false;
+    gameEl.classList.remove('board-locked');
+    timerEl.remove();
+    clearInterval(countdown);
+  }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AMNESIA / CLOWN PENALTY
+// ══════════════════════════════════════════════════════════════
+function applyClownPenalty(i1, i2) {
+  if (!S.gameActive) return;
+  const c1 = S.cards[i1];
+  const c2 = S.cards[i2];
+
+  // Screen shake on the game screen
+  gameEl.classList.add('screen-shake');
+  setTimeout(() => gameEl.classList.remove('screen-shake'), 450);
+
+  // Temporarily change both mismatched cards to clown emoji
+  const front1 = c1.element.querySelector('.card-front');
+  const front2 = c2.element.querySelector('.card-front');
+  const orig1 = front1.textContent;
+  const orig2 = front2.textContent;
+
+  front1.textContent = '🤡';
+  front2.textContent = '🤡';
+
+  // Show a floating text
+  const rect = c1.element.getBoundingClientRect();
+  showFloatingText('🤡 Amnesia!', rect.left + rect.width/2, rect.top - 10);
+
+  // Flip back after 2 seconds
+  setTimeout(() => {
+    if (!S.gameActive) return;
+    front1.textContent = orig1;
+    front2.textContent = orig2;
+  }, 2000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  X-RAY AUTO FLASH (Rare Pair Reward)
+// ══════════════════════════════════════════════════════════════
+function triggerXrayFlash() {
+  if (!S.gameActive) return;
+
+  // Visual flash overlay
+  const flash = document.createElement('div');
+  flash.className = 'xray-flash-overlay';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 650);
+
+  // Flip all unrevealed, unmatched cards face-up
+  const faceDown = S.cards.filter(c => !c.matched && !c.flipped);
+  faceDown.forEach(c => c.element.classList.add('flipped'));
+
+  // Flip them back down after 0.6s
+  setTimeout(() => {
+    faceDown.forEach(c => {
+      if (!c.matched) c.element.classList.remove('flipped');
+    });
+  }, 600);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1269,6 +1634,9 @@ function gameOver() {
   S.gameActive = false;
   stopTimer();
   stopFadeDecay();
+  if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
+  S.isBoardLocked = false;
+  gameEl.classList.remove('board-locked');
   showOverlay('💀', 'Game Over');
 }
 
@@ -1276,6 +1644,9 @@ function victory() {
   S.gameActive = false;
   stopTimer();
   stopFadeDecay();
+  if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
+  S.isBoardLocked = false;
+  gameEl.classList.remove('board-locked');
   showOverlay('🏆', 'Victory!');
 }
 
@@ -1531,6 +1902,10 @@ function playAgain() {
   S.matchedPairs = 0; S.flippedIndices = [];
   S.isProcessing = false; S.gameActive = false; S.xrayCharges = 0;
   S.fadeLevel = 0;
+  S.goldenEmoji = null; S.mimicEmoji = null; S.xrayTriggerEmoji = null;
+  S.isBoardLocked = false; S.boardLockTimer = null;
+  S.mistakeTracker = {}; S.lastMistakeKey = null;
+  S.goldenRevealed = false;
 
   updateXrayUI();
 
@@ -1546,6 +1921,10 @@ function playAgain() {
 function backToMenu() {
   stopTimer();
   stopFadeDecay();
+  // Clear any active board lock
+  if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
+  S.isBoardLocked = false;
+  gameEl.classList.remove('board-locked');
   gameOverlay.classList.add('hidden');
   xrayContainer.classList.remove('hidden');
   if (heroInterval) clearInterval(heroInterval);
@@ -1561,6 +1940,11 @@ function initGame() {
   S.xrayCharges = 0;
   S.fadeLevel = 0;
   S.sessionStartTime = performance.now();
+  S.isBoardLocked = false;
+  S.boardLockTimer = null;
+  S.mistakeTracker = {};
+  S.lastMistakeKey = null;
+  S.goldenRevealed = false;
 
   buildGrid();
   updateScore();
