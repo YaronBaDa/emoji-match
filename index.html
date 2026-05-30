@@ -1390,9 +1390,15 @@ function updateComboDisplay() {
 // ══════════════════════════════════════════════════════════════
 
 function getGridLayout(count) {
-  const cols = Math.ceil(Math.sqrt(count));
-  const rows = Math.ceil(count / cols);
-  if (rows > cols + 1) { return { cols: rows, rows: cols }; }
+  // Portrait mobile: prefer fewer columns so grid is taller than wide
+  let cols = Math.floor(Math.sqrt(count));
+  cols = Math.max(3, cols);
+  let rows = Math.ceil(count / cols);
+  // If grid is wider than tall, reduce columns until it's portrait-friendly
+  while (rows < cols && cols > 3) {
+    cols--;
+    rows = Math.ceil(count / cols);
+  }
   return { cols, rows };
 }
 
@@ -1813,9 +1819,15 @@ window.addEventListener('resize', () => {
 });
 
 function getGridLayout(count) {
-  const cols = Math.ceil(Math.sqrt(count));
-  const rows = Math.ceil(count / cols);
-  if (rows > cols + 1) { return { cols: rows, rows: cols }; }
+  // Portrait mobile: prefer fewer columns so grid is taller than wide
+  let cols = Math.floor(Math.sqrt(count));
+  cols = Math.max(3, cols);
+  let rows = Math.ceil(count / cols);
+  // If grid is wider than tall, reduce columns until it's portrait-friendly
+  while (rows < cols && cols > 3) {
+    cols--;
+    rows = Math.ceil(count / cols);
+  }
   return { cols, rows };
 }
 
