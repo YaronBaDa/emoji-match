@@ -300,9 +300,11 @@
     .tempo-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
     .tempo-cell {
       aspect-ratio: 1;
-      border-radius: 3px;
+      border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Space Mono', monospace;
     }
     .tempo-fast { background: rgba(34,197,94,0.35); color: #4ade80; }
     .tempo-med  { background: rgba(251,191,36,0.35); color: #fbbf24; }
@@ -332,10 +334,10 @@
     }
 
     /* ─── Underlay Figurative Reveal ─── */
-    /* A large emoji changes every day so players stay curious about  */
-    /* what is hidden beneath the cards.  Matched cards stay visible  */
-    /* but their front-face emoji fades, progressively revealing the   */
-    /* daily mystery figure beneath.                                   */
+    /* A large emoji changes every day. Matched cards do a fun pop   */
+    /* animation then disappear completely, progressively revealing  */
+    /* the daily mystery figure beneath. Bg stays dim during play,   */
+    /* brightens + sparkles on victory.                                */
     #gridWrapper { position: relative; }
 
     #underlayGrid {
@@ -363,10 +365,16 @@
       transition: opacity 0.6s ease, filter 0.6s ease;
     }
 
-    /* Brighten to full color on victory */
+    /* Victory: full brightness + golden glow */
     .underlay-victory .underlay-emoji {
       opacity: 1 !important;
-      filter: drop-shadow(0 0 32px rgba(255,255,255,0.35)) drop-shadow(0 0 12px rgba(0,0,0,0.4)) !important;
+      filter: drop-shadow(0 0 40px rgba(255,215,0,0.5)) drop-shadow(0 0 80px rgba(255,255,255,0.3)) drop-shadow(0 0 12px rgba(0,0,0,0.4)) !important;
+      animation: underlayBreathe 3.5s ease-in-out infinite, underlaySparkle 0.6s ease-in-out infinite;
+    }
+
+    @keyframes underlaySparkle {
+      0%, 100% { filter: drop-shadow(0 0 40px rgba(255,215,0,0.5)) drop-shadow(0 0 80px rgba(255,255,255,0.3)) drop-shadow(0 0 12px rgba(0,0,0,0.4)); }
+      50%      { filter: drop-shadow(0 0 80px rgba(255,215,0,0.9)) drop-shadow(0 0 160px rgba(255,255,255,0.6)) drop-shadow(0 0 20px rgba(0,0,0,0.4)); }
     }
 
     /* Breathe animation when the figure is partially revealed */
@@ -378,15 +386,20 @@
       animation: underlayBreathe 3.5s ease-in-out infinite;
     }
 
-    /* Matched cards: keep the card visible, fade only the front-face emoji
-       so the background underlay is progressively revealed. */
+    /* Matched cards: fun pop animation then disappear completely */
+    @keyframes matchPop {
+      0%   { transform: scale(1) rotateY(180deg); opacity: 1; }
+      30%  { transform: scale(1.22) rotateY(180deg) rotate(6deg); opacity: 1; }
+      55%  { transform: scale(1.10) rotateY(180deg) rotate(-3deg); opacity: 0.9; }
+      80%  { transform: scale(0.6) rotateY(180deg); opacity: 0.4; }
+      100% { transform: scale(0) rotateY(180deg); opacity: 0; }
+    }
+    .reveal-mode .card.matched {
+      animation: matchPop 0.55s cubic-bezier(0.4,0,0.2,1) forwards;
+      pointer-events: none;
+    }
     .reveal-mode .card.matched .card-front {
-      color: transparent !important;
-      background: rgba(24, 24, 27, 0.18) !important;
-      border-color: rgba(255, 255, 255, 0.04) !important;
-      transition: color 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s,
-                  background 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s,
-                  border-color 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s !important;
+      border-color: rgba(34,197,94,0.35) !important;
     }
 
     /* ─── Golden Pair Glow ─── */
@@ -1700,7 +1713,8 @@ function victory() {
   S.isBoardLocked = false;
   gameEl.classList.remove('board-locked');
   underlayGrid.classList.add('underlay-victory');
-  showOverlay('🏆', 'Victory!');
+  // Brighten bg + sparkle for 3s before showing summary
+  setTimeout(() => showOverlay('🏆', 'Victory!'), 3000);
 }
 
 function showOverlay(headerEmoji, titleText) {
@@ -1762,8 +1776,8 @@ function computePercentile(score) {
 }
 
 function renderTempoMap() {
-  // One cell per pair, colored by how many times it was flipped.
-  // Perfect = 2 flips (both cards found first try). More flips = struggled more.
+  // One cell per pair, showing how many times that pair was flipped.
+  // Perfect = 2 flips. More flips = struggled more.
   tempoMapEl.innerHTML = '';
   const total = S.totalPairs;
 
@@ -1781,19 +1795,18 @@ function renderTempoMap() {
     const cell = document.createElement('div');
     cell.className = 'tempo-cell';
 
-    // 0 = never flipped, 2 = perfect, 3-4 = okay, 5+ = struggled
+    // Always show the numeric flip count
+    cell.textContent = flips;
+
+    // Color-code by efficiency
     if (flips === 0) {
       cell.classList.add('tempo-empty');
-      cell.textContent = '·';
     } else if (flips <= 2) {
       cell.classList.add('tempo-fast');
-      cell.textContent = '⚡';
     } else if (flips <= 4) {
       cell.classList.add('tempo-med');
-      cell.textContent = flips;
     } else {
       cell.classList.add('tempo-slow');
-      cell.textContent = flips;
     }
     tempoMapEl.appendChild(cell);
   });
