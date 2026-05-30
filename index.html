@@ -1357,8 +1357,11 @@ function renderTempoMap() {
     const cell = document.createElement('div');
     cell.className = 'tempo-cell';
 
-    // 2 flips = perfect, 3-4 = okay, 5+ = struggled
-    if (flips <= 2) {
+    // 0 = never flipped, 2 = perfect, 3-4 = okay, 5+ = struggled
+    if (flips === 0) {
+      cell.classList.add('tempo-empty');
+      cell.textContent = '·';
+    } else if (flips <= 2) {
       cell.classList.add('tempo-fast');
       cell.textContent = '⚡';
     } else if (flips <= 4) {
