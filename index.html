@@ -562,6 +562,8 @@ const S = {
   pairTimes: [],
   totalFlips: 0,
   flipCounts: [],
+  pairFlipCounts: {},
+  emojis: [],
   timeLeft: START_TIME,
   maxTime: START_TIME,
   totalPairs: 0,
@@ -901,9 +903,11 @@ function buildGrid() {
   S.cards = [];
   S.totalFlips = 0;
   S.flipCounts = new Array(count).fill(0);
+  S.pairFlipCounts = {};
 
   const seed = S.mode === 'daily' ? getDailySeed() : null;
   const emojis = getEmojisForLevel(S.totalPairs, seed);
+  S.emojis = emojis;
   const pairs = [...emojis, ...emojis];
 
   if (S.mode === 'daily') {
@@ -989,6 +993,7 @@ function onCardClick(index) {
   S.flippedIndices.push(index);
   S.totalFlips++;
   S.flipCounts[index]++;
+  S.pairFlipCounts[card.emoji] = (S.pairFlipCounts[card.emoji] || 0) + 1;
 
   if (S.flippedIndices.length === 2) {
     S.isProcessing = true;
@@ -1333,42 +1338,38 @@ function computePercentile(score) {
 }
 
 function renderTempoMap() {
-  // 4 rows x 5 cells. Each cell = a quartile of pairs.
-  // Color by speed: fast (green), medium (yellow), slow (red)
+  // One cell per pair, colored by how many times it was flipped.
+  // Perfect = 2 flips (both cards found first try). More flips = struggled more.
   tempoMapEl.innerHTML = '';
   const total = S.totalPairs;
-  const cols = 5;
-  const rows = 4;
-  const pairsPerCell = Math.max(1, Math.ceil(total / (rows * cols)));
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const idx = r * cols + c;
-      const cell = document.createElement('div');
-      cell.className = 'tempo-cell';
+  // Dynamic columns: make the grid look balanced for any pair count
+  let cols = 5;
+  if (total <= 4) cols = total;
+  else if (total <= 6) cols = 3;
+  else if (total <= 8) cols = 4;
+  else if (total <= 10) cols = 5;
+  else cols = 4; // 12 pairs -> 3 rows of 4
+  tempoMapEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
-      const pairIdxStart = idx * pairsPerCell;
-      const pairIdxEnd = Math.min(pairIdxStart + pairsPerCell, total);
+  S.emojis.forEach((emoji) => {
+    const flips = S.pairFlipCounts[emoji] || 0;
+    const cell = document.createElement('div');
+    cell.className = 'tempo-cell';
 
-      if (pairIdxStart >= S.pairTimes.length) {
-        cell.classList.add('tempo-empty');
-        cell.textContent = '·';
-      } else {
-        // Average time for pairs in this cell
-        let sum = 0, count = 0;
-        for (let p = pairIdxStart; p < pairIdxEnd && p < S.pairTimes.length; p++) {
-          sum += S.pairTimes[p];
-          count++;
-        }
-        const avg = count > 0 ? sum / count : 0;
-        // Thresholds in ms
-        if (avg < 8000) { cell.classList.add('tempo-fast'); cell.textContent = '⚡'; }
-        else if (avg < 18000) { cell.classList.add('tempo-med'); cell.textContent = '🟨'; }
-        else { cell.classList.add('tempo-slow'); cell.textContent = '🟥'; }
-      }
-      tempoMapEl.appendChild(cell);
+    // 2 flips = perfect, 3-4 = okay, 5+ = struggled
+    if (flips <= 2) {
+      cell.classList.add('tempo-fast');
+      cell.textContent = '⚡';
+    } else if (flips <= 4) {
+      cell.classList.add('tempo-med');
+      cell.textContent = flips;
+    } else {
+      cell.classList.add('tempo-slow');
+      cell.textContent = flips;
     }
-  }
+    tempoMapEl.appendChild(cell);
+  });
 }
 
 function generateVerdict() {
