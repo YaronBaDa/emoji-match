@@ -480,6 +480,65 @@
       animation: xrayFlashOverlay 0.6s ease-out forwards;
     }
 
+    /* ─── Special Ability Animations ─── */
+    #gameStatusAnnouncer {
+      position: fixed; top: 14%; left: 5%; right: 5%; z-index: 90;
+      display: flex; justify-content: center; pointer-events: none;
+      opacity: 0; transform: translateY(-12px) scale(0.96);
+      transition: opacity 0.35s cubic-bezier(.4,0,.2,1), transform 0.35s cubic-bezier(.4,0,.2,1);
+    }
+    #gameStatusAnnouncer.show { opacity: 1; transform: translateY(0) scale(1); }
+    .banner-inner {
+      padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700;
+      letter-spacing: 0.5px; text-align: center; max-width: 90%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+    }
+    .banner-clairvoyance { background: rgba(91,33,182,0.85); color: #e9d5ff; border: 1px solid rgba(139,92,246,0.5); }
+    .banner-timewarp   { background: rgba(14,165,233,0.85); color: #e0f2fe; border: 1px solid rgba(56,189,248,0.5); }
+    .banner-lockdown   { background: rgba(220,38,38,0.85); color: #fee2e2; border: 1px solid rgba(248,113,113,0.5); }
+    .banner-detonation { background: rgba(234,179,8,0.85); color: #fefce8; border: 1px solid rgba(250,204,21,0.5); }
+
+    @keyframes explosionShake {
+      0%,100% { transform: translate(0,0); }
+      10% { transform: translate(-6px, 3px) rotate(-0.5deg); }
+      20% { transform: translate(5px, -4px) rotate(0.5deg); }
+      30% { transform: translate(-4px, -2px) rotate(-0.3deg); }
+      40% { transform: translate(3px, 5px) rotate(0.3deg); }
+      50% { transform: translate(-5px, -3px) rotate(-0.5deg); }
+      60% { transform: translate(4px, 2px) rotate(0.5deg); }
+      70% { transform: translate(-3px, -4px) rotate(-0.2deg); }
+      80% { transform: translate(2px, 3px) rotate(0.2deg); }
+      90% { transform: translate(-2px, -1px) rotate(-0.1deg); }
+    }
+    .explosion-shake { animation: explosionShake 0.6s ease-in-out; }
+
+    .freeze-overlay {
+      position: absolute; inset: 0; z-index: 25;
+      background: rgba(30,58,138,0.25);
+      backdrop-filter: blur(3px) saturate(0.6);
+      border-radius: 14px; opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .freeze-overlay.active { opacity: 1; }
+    .freeze-overlay::after {
+      content: "\u2744\uFE0F"; font-size: 32px; animation: frostPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes frostPulse { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
+
+    .floating-time-bonus {
+      position: fixed; z-index: 80; pointer-events: none;
+      font-size: 18px; font-weight: 800; color: #4ade80;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      animation: floatUp 1.2s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+    }
+
+    .clairvoyance-flip .card-inner { transform: rotateY(180deg); transition: transform 0.45s cubic-bezier(.4,0,.2,1); }
+
     /* ─── Board Lock (Mimic Penalty) ─── */
     .board-locked::after {
       content: '';
@@ -584,7 +643,6 @@
       </div>
       <div class="flex items-center gap-2">
         <span id="comboDisplay" class="hidden items-center gap-1 text-amber-400 font-bold">🔥<span id="comboCount">x0</span></span>
-        <span id="xrayHud" class="text-zinc-500 text-[10px] font-mono">👁️×0</span>
       </div>
     </div>
   </div>
@@ -595,18 +653,11 @@
     <div id="grid" class="grid grid-cols-4 gap-1.5 grid-fade-in"></div>
   </div>
 
-  <!-- X-Ray -->
-  <div id="xrayContainer" class="flex-shrink-0 pb-1.5 px-3 flex justify-center">
-    <div class="bg-zinc-900/30 border border-zinc-800/80 rounded-md px-3 py-2 flex items-center gap-2">
-      <button id="xrayBtn" class="font-mono font-bold text-[10px] text-zinc-100 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 rounded-sm px-3 py-1.5 transition-colors border border-zinc-700/60">
-        👁️ X-RAY
-      </button>
-      <span id="xrayLabel" class="font-mono text-[9px] text-zinc-600">peek</span>
-    </div>
-  </div>
-
   <!-- Floating Text Container -->
   <div id="floatingContainer" class="fixed inset-0 pointer-events-none z-30"></div>
+
+  <!-- Contextual Ability Banner -->
+  <div id="gameStatusAnnouncer"><div class="banner-inner" id="bannerInner"></div></div>
 
   <!-- Victory Banner -->
   <div id="victoryBanner" class="hidden">
@@ -652,15 +703,16 @@
 const GAME_CONFIG = {
   COMPACT_HUD: true,
   VANISH_MATCHES: true,
-  ACCELERATE_TIMER: true,
-  CYBER_GRID_BG: true,
-  EMOJI_SCALE_PERCENT: 80,
   UNDERLAY_REVEAL: true,
-  GOLDEN_PAIR: true,
-  MIMIC_TRAP: true,
-  AMNESIA_PENALTY: true,
-  XRAY_RARE_PAIR: true,
-
+  EMOJI_SCALE_PERCENT: 52,
+  ABILITY_TRIGGERS: {
+    CLAIRVOYANCE: '🔮',
+    TIMEWARP: '⏰',
+    LOCKDOWN: '🔓',
+    DETONATION: '💣',
+  },
+  GRID_COLS: 4,
+  GRID_ROWS: 4,
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -690,23 +742,18 @@ function getDailyEmoji() {
 
 // ══════════════════════════════════════════════════════════════════
 //  GAME CONSTANTS
-// ══════════════════════════════════════════════════════════════════
-const START_TIME = 60;
+// ═══════════════════════════════════════════════════════════════════════════════
 const BASE_SCORE = 100;
-const COMBO_WINDOW = 2000;
-const MATCH_TIME_BONUS = 2;
 const GRID_GAP = 6;
-const TIMER_INTERVAL = 100;
-const ADRENALINE_THRESHOLD = 0.20;
-const XRAY_MAX_STORED = 3;
+const CLAIRVOYANCE_DURATION = 1000;
+const LOCKDOWN_DURATION = 3000;
+const TIMEWARP_DEDUCTION = 10;
 
 const ALL_EMOJIS = [
   '💀','🤡','🧠','🔥','🤫','👑','💅','🤠',
   '🚀','👽','🥷','🥑','🦄','🌈','🎯','⚡',
   '🍕','🧩','🛸','🎸','🎪','🐲','🎨','🍭',
 ];
-
-const GAME_URL = 'https://yaronbada.github.io/emoji-match/';
 
 // estimated score curve for percentile (hardcoded until real data)
 const PERCENTILE_CURVE = [
@@ -738,30 +785,21 @@ const S = {
   flipCounts: [],
   pairFlipCounts: {},
   emojis: [],
-  timeLeft: START_TIME,
-  maxTime: START_TIME,
   totalPairs: 0,
   matchedPairs: 0,
   flippedIndices: [],
   cards: [],
   isProcessing: false,
   lastMatchTime: 0,
-  timerId: null,
   gameActive: false,
-  xrayCharges: 0,
-  fadeTimer: null,
-  fadeLevel: 0,
-  sessionStartTime: 0,
-  mode: 'classic',
-  goldenEmoji: null,
-  mimicEmoji: null,
-  xrayTriggerEmoji: null,
+  elapsedTime: 0,
+  elapsedTimerId: null,
+  firstFlipTime: 0,
   isBoardLocked: false,
   boardLockTimer: null,
-  mistakeTracker: {},
-  lastMistakeKey: null,
-  goldenRevealed: false,
-
+  bombTriggered: false,
+  clairvoyanceActive: false,
+  mode: 'classic',
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -809,10 +847,8 @@ const comboCount    = $('comboCount');
 const comboDisplayCompact = $('comboDisplayCompact');
 const comboCountCompact = $('comboCountCompact');
 const floatContainer= $('floatingContainer');
-const xrayBtn       = $('xrayBtn');
-const xrayLabel     = $('xrayLabel');
-const xrayHud       = $('xrayHud');
-const xrayContainer = $('xrayContainer');
+const gameStatusAnnouncer = $('gameStatusAnnouncer');
+const bannerInner = $('bannerInner');
 const gameOverlay   = $('gameOverOverlay');
 const overlayHeader = $('overlayHeader');
 const overlayTitle  = $('overlayTitle');
@@ -1065,7 +1101,7 @@ function startGame(count) {
   gameEl.classList.toggle('compact-mode', GAME_CONFIG.COMPACT_HUD);
   gameEl.classList.toggle('vanish-mode', GAME_CONFIG.VANISH_MATCHES && !GAME_CONFIG.UNDERLAY_REVEAL);
   gameEl.classList.toggle('reveal-mode', GAME_CONFIG.UNDERLAY_REVEAL);
-  gameEl.classList.toggle('dot-bg', GAME_CONFIG.CYBER_GRID_BG);
+  gameEl.classList.add('dot-bg');
 
   initGame();
 }
@@ -1092,95 +1128,35 @@ function buildGrid() {
   S.totalFlips = 0;
   S.flipCounts = new Array(count).fill(0);
   S.pairFlipCounts = {};
-
-  const seed = S.mode === 'daily' ? getDailySeed() : null;
+  S.bombTriggered = false;
+  const seed = S.mode === "daily" ? getDailySeed() : null;
   const emojis = getEmojisForLevel(S.totalPairs, seed);
   S.emojis = emojis;
   const pairs = [...emojis, ...emojis];
-
-  if (S.mode === 'daily') {
+  if (S.mode === "daily") {
     const rng = mulberry32(seed + 1);
-    for (let i = pairs.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
-    }
-  } else {
-    shuffle(pairs);
-  }
-
-  // ─── Designate special pairs for this round ───
-  const uniqueEmojis = [...new Set(pairs)];
-  // Golden Pair: 3x score multiplier (random among all pairs)
-  S.goldenEmoji = uniqueEmojis[Math.floor(Math.random() * uniqueEmojis.length)];
-  // Mimic Trap: clicking its second card locks the board (different from golden)
-  const remaining = uniqueEmojis.filter(e => e !== S.goldenEmoji);
-  S.mimicEmoji = remaining[Math.floor(Math.random() * remaining.length)];
-  // X-Ray Rare Pair: matching this triggers an auto X-Ray flash
-  const remaining2 = remaining.filter(e => e !== S.mimicEmoji);
-  S.xrayTriggerEmoji = remaining2.length > 0 ? remaining2[Math.floor(Math.random() * remaining2.length)] : null;
-  S.goldenRevealed = false;
-
+    for (let i = pairs.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pairs[i], pairs[j]] = [pairs[j], pairs[i]]; }
+  } else { shuffle(pairs); }
   const size = calculateCardSize();
   const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
-
   gridEl.style.gridTemplateColumns = `repeat(${GAME_CONFIG.GRID_COLS}, ${size}px)`;
   gridEl.style.gridTemplateRows = `repeat(${GAME_CONFIG.GRID_ROWS}, ${size}px)`;
-  gridEl.style.gap = `${GRID_GAP}px`;
-  gridEl.style.justifyContent = 'center';
-  gridEl.style.alignContent = 'center';
-
-  gridEl.classList.remove('grid-fade-in');
-  void gridEl.offsetWidth;
-  gridEl.classList.add('grid-fade-in');
-
-  gridEl.innerHTML = '';
-  S.flippedIndices = [];
-
-  // Build underlay image grid to reveal beneath matched cards
+  gridEl.style.gap = `${GRID_GAP}px`; gridEl.style.justifyContent = "center"; gridEl.style.alignContent = "center";
+  gridEl.classList.remove("grid-fade-in"); void gridEl.offsetWidth; gridEl.classList.add("grid-fade-in");
+  gridEl.innerHTML = ""; S.flippedIndices = [];
   buildUnderlayGrid(size, pairs.length);
-
   pairs.forEach((emoji, idx) => {
-    const cardWrapper = document.createElement('div');
-    cardWrapper.className = 'card';
-    cardWrapper.dataset.index = idx;
-    cardWrapper.style.width = `${size}px`;
-    cardWrapper.style.height = `${size}px`;
-
-    const inner = document.createElement('div');
-    inner.className = 'card-inner';
-
-    const back = document.createElement('div');
-    back.className = 'card-face card-back';
-
-    const front = document.createElement('div');
-    front.className = 'card-face card-front';
-    front.textContent = emoji;
-    front.style.fontSize = `${emojiSize}px`;
-    front.style.lineHeight = '1';
-
-    inner.appendChild(back);
-    inner.appendChild(front);
-    cardWrapper.appendChild(inner);
-
-    cardWrapper.addEventListener('click', () => onCardClick(idx));
-    cardWrapper.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      onCardClick(idx);
-    }, { passive: false });
-
+    const cardWrapper = document.createElement("div"); cardWrapper.className = "card"; cardWrapper.dataset.index = idx;
+    cardWrapper.style.width = `${size}px`; cardWrapper.style.height = `${size}px`;
+    const inner = document.createElement("div"); inner.className = "card-inner";
+    const back = document.createElement("div"); back.className = "card-face card-back";
+    const front = document.createElement("div"); front.className = "card-face card-front"; front.textContent = emoji;
+    front.style.fontSize = `${emojiSize}px`; front.style.lineHeight = "1";
+    inner.appendChild(back); inner.appendChild(front); cardWrapper.appendChild(inner);
+    cardWrapper.addEventListener("click", () => onCardClick(idx));
+    cardWrapper.addEventListener("touchstart", (e) => { e.preventDefault(); onCardClick(idx); }, { passive: false });
     gridEl.appendChild(cardWrapper);
-
-    // Tag special cards with visual markers before hiding them
-    if (emoji === S.goldenEmoji) cardWrapper.classList.add('golden-pair');
-    if (emoji === S.mimicEmoji) cardWrapper.classList.add('mimic-trap');
-
-    S.cards.push({
-      emoji,
-      matched: false,
-      flipped: false,
-      element: cardWrapper,
-      index: idx,
-    });
+    S.cards.push({ emoji, matched: false, flipped: false, element: cardWrapper, index: idx });
   });
 }
 
@@ -1190,35 +1166,18 @@ function buildGrid() {
 function onCardClick(index) {
   if (!S.gameActive) return;
   if (S.isProcessing) return;
-  if (S.isBoardLocked) return; // Mimic trap penalty lock
-
+  if (S.isBoardLocked) return;
+  if (S.clairvoyanceActive) return;
   const card = S.cards[index];
   if (!card || card.matched || card.flipped) return;
   if (S.flippedIndices.includes(index)) return;
-
-  card.flipped = true;
-  card.element.classList.add('flipped');
-  S.flippedIndices.push(index);
-  S.totalFlips++;
-  S.flipCounts[index]++;
+  if (S.firstFlipTime === 0) { S.firstFlipTime = performance.now(); startTimer(); }
+  card.flipped = true; card.element.classList.add("flipped");
+  S.flippedIndices.push(index); S.totalFlips++; S.flipCounts[index]++;
   S.pairFlipCounts[card.emoji] = (S.pairFlipCounts[card.emoji] || 0) + 1;
-
   if (S.flippedIndices.length === 2) {
-    S.isProcessing = true;
-    S.moves++;
-    movesDisplay.textContent = S.moves;
-    movesDisplayCompact.textContent = S.moves;
-
-    // Mimic Trap: if either flipped card is the mimic, the board locks for 3s
-    const firstIdx = S.flippedIndices[0];
-    const secondIdx = S.flippedIndices[1];
-    const firstCard = S.cards[firstIdx];
-    const secondCard = S.cards[secondIdx];
-    if (GAME_CONFIG.MIMIC_TRAP &&
-        (firstCard.emoji === S.mimicEmoji || secondCard.emoji === S.mimicEmoji)) {
-      triggerMimicPenalty();
-    }
-
+    S.isProcessing = true; S.moves++;
+    movesDisplay.textContent = S.moves; movesDisplayCompact.textContent = S.moves;
     setTimeout(checkMatch, 400);
   }
 }
@@ -1236,128 +1195,43 @@ function checkMatch() {
 }
 
 function handleMatch(i1, i2) {
-  const c1 = S.cards[i1];
-  const c2 = S.cards[i2];
-
-  c1.matched = true;
-  c2.matched = true;
-  c1.element.classList.add('matched');
-  c2.element.classList.add('matched');
-
-  // Underlay Reveal: matched cards keep their back visible but front-face emoji fades
+  const c1 = S.cards[i1]; const c2 = S.cards[i2];
+  c1.matched = true; c2.matched = true;
+  c1.element.classList.add("matched"); c2.element.classList.add("matched");
   if (GAME_CONFIG.UNDERLAY_REVEAL) {
-    // Start the subtle breathing animation once the figure is partially visible
-    if (S.matchedPairs >= 0 && !underlayGrid.classList.contains('underlay-breathe')) {
-      underlayGrid.classList.add('underlay-breathe');
-    }
+    if (S.matchedPairs >= 0 && !underlayGrid.classList.contains("underlay-breathe")) underlayGrid.classList.add("underlay-breathe");
   }
-
   S.matchedPairs++;
-
   const now = performance.now();
-  if (S.lastMatchTime && (now - S.lastMatchTime < COMBO_WINDOW)) {
-    S.combo++;
-  } else {
-    S.combo = 0;
-  }
-  S.lastMatchTime = now;
-
-  if (S.combo > S.maxCombo) S.maxCombo = S.combo;
-
-  addTime(MATCH_TIME_BONUS);
-
+  if (S.lastMatchTime && (now - S.lastMatchTime < 2000)) S.combo++; else S.combo = 0;
+  S.lastMatchTime = now; if (S.combo > S.maxCombo) S.maxCombo = S.combo;
   const midX = (c1.element.getBoundingClientRect().left + c2.element.getBoundingClientRect().right) / 2;
   const midY = Math.min(c1.element.getBoundingClientRect().top, c2.element.getBoundingClientRect().top) - 14;
-
-  let multiplier = S.combo + 1;
-
-  // Golden Pair: 3x multiplier on this match
-  const isGolden = (c1.emoji === S.goldenEmoji);
-  if (GAME_CONFIG.GOLDEN_PAIR && isGolden) {
-    multiplier = Math.max(multiplier, 3);
-    S.goldenRevealed = true;
-    showFloatingText('✨ GOLDEN ✨', midX, midY - 28);
-  }
-
-  const points = BASE_SCORE * multiplier;
-  S.score += points;
-
+  let multiplier = S.combo + 1; const points = BASE_SCORE * multiplier; S.score += points;
   const label = S.combo >= 1 ? `+${points}x${multiplier}` : `+${points}`;
   showFloatingText(label, midX, midY);
-
-  if (S.combo >= 3) {
-    spawnConfetti(midX, midY);
-    // Earn an X-Ray charge on 3+ combo
-    if (S.xrayCharges < XRAY_MAX_STORED) {
-      S.xrayCharges++;
-      updateXrayUI();
-    }
-  }
-
-  S.flipHistory.push(S.combo >= 3 ? '🔥' : '🟩');
-  S.pairTimes.push(performance.now() - S.sessionStartTime);
-
-  // X-Ray Rare Pair: matching the trigger emoji auto-flashes all face-down cards for 0.6s
-  if (GAME_CONFIG.XRAY_RARE_PAIR && c1.emoji === S.xrayTriggerEmoji) {
-    triggerXrayFlash();
-  }
-
-  updateScore();
-  updateComboDisplay();
-
-  if (S.matchedPairs >= S.totalPairs) {
-    setTimeout(victory, 700);
-    S.flippedIndices = [];
-    return;
-  }
-
-  S.flippedIndices = [];
-  S.isProcessing = false;
+  S.flipHistory.push(S.combo >= 3 ? "🔥" : "🟩");
+  S.pairTimes.push(performance.now() - S.firstFlipTime);
+  const emoji = c1.emoji; const ab = GAME_CONFIG.ABILITY_TRIGGERS;
+  if (emoji === ab.CLAIRVOYANCE) { triggerClairvoyance(); }
+  else if (emoji === ab.TIMEWARP) { triggerTimeWarp(midX, midY); }
+  else if (emoji === ab.LOCKDOWN) { triggerSecurityLockdown(); }
+  else if (emoji === ab.DETONATION) { triggerClusterBomb(); }
+  updateScore(); updateComboDisplay();
+  if (S.matchedPairs >= S.totalPairs) { setTimeout(victory, 700); S.flippedIndices = []; return; }
+  S.flippedIndices = []; S.isProcessing = false;
 }
 
 function handleMismatch(i1, i2) {
-  const c1 = S.cards[i1];
-  const c2 = S.cards[i2];
-  const el1 = c1.element;
-  const el2 = c2.element;
-
-  el1.classList.add('mismatch');
-  el2.classList.add('mismatch');
-
-  S.combo = 0;
-  updateComboDisplay();
-
-  S.flipHistory.push('🟥');
-
-  // ─── Golden Pair shuffle penalty ───
-  // If a player reveals ONE golden card but mismatches it,
-  // that golden card + its pair must swap with two other unrevealed cards.
-  if (GAME_CONFIG.GOLDEN_PAIR && !S.goldenRevealed) {
-    const goldenFlipped = (c1.emoji === S.goldenEmoji) ? i1 : (c2.emoji === S.goldenEmoji) ? i2 : -1;
-    if (goldenFlipped !== -1) {
-      setTimeout(() => shuffleGoldenPair(goldenFlipped), 520);
-    }
-  }
-
-  // ─── Amnesia Penalty: track identical mistakes ───
-  if (GAME_CONFIG.AMNESIA_PENALTY) {
-    const key = [i1, i2].sort((a,b) => a-b).join(',');
-    S.mistakeTracker[key] = (S.mistakeTracker[key] || 0) + 1;
-    S.lastMistakeKey = key;
-    if (S.mistakeTracker[key] >= 3) {
-      // Reset tracker for this pair and trigger clown penalty
-      S.mistakeTracker[key] = 0;
-      setTimeout(() => applyClownPenalty(i1, i2), 520);
-    }
-  }
-
+  const c1 = S.cards[i1]; const c2 = S.cards[i2];
+  const el1 = c1.element; const el2 = c2.element;
+  el1.classList.add("mismatch"); el2.classList.add("mismatch");
+  S.combo = 0; updateComboDisplay();
+  S.flipHistory.push("🟥");
   setTimeout(() => {
-    el1.classList.remove('flipped','mismatch');
-    el2.classList.remove('flipped','mismatch');
-    c1.flipped = false;
-    c2.flipped = false;
-    S.flippedIndices = [];
-    S.isProcessing = false;
+    el1.classList.remove("flipped","mismatch"); el2.classList.remove("flipped","mismatch");
+    c1.flipped = false; c2.flipped = false;
+    S.flippedIndices = []; S.isProcessing = false;
   }, 500);
 }
 
@@ -1382,192 +1256,22 @@ function buildUnderlayGrid(cellSize, totalCards) {
 // ══════════════════════════════════════════════════════════════
 //  GOLDEN PAIR SHUFFLE
 // ══════════════════════════════════════════════════════════════
-function shuffleGoldenPair(goldenFlippedIndex) {
-  if (!S.gameActive) return;
-  const goldenCard = S.cards[goldenFlippedIndex];
-  const goldenEmoji = goldenCard.emoji;
-
-  // Find the OTHER golden card (the pair)
-  const otherGoldenIdx = S.cards.findIndex((c, idx) =>
-    idx !== goldenFlippedIndex && c.emoji === goldenEmoji && !c.matched
-  );
-  if (otherGoldenIdx === -1) return;
-
-  // Collect 2 random unrevealed, unmatched non-golden cards
-  const candidates = S.cards
-    .map((c, idx) => ({ c, idx }))
-    .filter(({ c, idx }) =>
-      !c.matched && !c.flipped && c.emoji !== goldenEmoji
-    );
-
-  if (candidates.length < 2) return;
-
-  // Shuffle candidates and pick 2
-  for (let i = candidates.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-  }
-  const swapA = candidates[0];
-  const swapB = candidates[1];
-
-  // Perform swap in data
-  const tempEmoji = S.cards[otherGoldenIdx].emoji;
-  S.cards[otherGoldenIdx].emoji = swapA.c.emoji;
-  S.cards[swapA.idx].emoji = tempEmoji;
-
-  // Perform swap in DOM (front text + special classes)
-  const otherEl = S.cards[otherGoldenIdx].element;
-  const swapAEl = swapA.c.element;
-
-  const otherFront = otherEl.querySelector('.card-front');
-  const swapAFront = swapAEl.querySelector('.card-front');
-  const tmpText = otherFront.textContent;
-  otherFront.textContent = swapAFront.textContent;
-  swapAFront.textContent = tmpText;
-
-  // Transfer special classes
-  otherEl.classList.remove('golden-pair');
-  swapAEl.classList.add('golden-pair');
-
-  // Brief flash to signal the shuffle happened
-  [otherEl, swapAEl, S.cards[goldenFlippedIndex].element, swapB.c.element].forEach(el => {
-    el.style.transition = 'transform 0.2s ease';
-    el.style.transform = 'scale(0.92)';
-    setTimeout(() => { el.style.transform = ''; }, 220);
-  });
-
-  // If the swapped-in card was the mimic, update mimic class too
-  if (S.cards[otherGoldenIdx].emoji === S.mimicEmoji) {
-    otherEl.classList.add('mimic-trap');
-    swapAEl.classList.remove('mimic-trap');
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 //  MIMIC TRAP PENALTY
 // ══════════════════════════════════════════════════════════════
-function triggerMimicPenalty() {
-  if (S.isBoardLocked) return;
-  S.isBoardLocked = true;
-  gameEl.classList.add('board-locked');
-
-  const timerEl = document.createElement('div');
-  timerEl.className = 'board-lock-timer';
-  timerEl.textContent = '⚠️ BOARD LOCKED — 3s';
-  document.body.appendChild(timerEl);
-
-  let remaining = 3;
-  const countdown = setInterval(() => {
-    remaining--;
-    if (remaining > 0) {
-      timerEl.textContent = `⚠️ BOARD LOCKED — ${remaining}s`;
-    } else {
-      clearInterval(countdown);
-    }
-  }, 1000);
-
-  S.boardLockTimer = setTimeout(() => {
-    S.isBoardLocked = false;
-    gameEl.classList.remove('board-locked');
-    timerEl.remove();
-    clearInterval(countdown);
-  }, 3000);
-}
 
 // ══════════════════════════════════════════════════════════════
 //  AMNESIA / CLOWN PENALTY
 // ══════════════════════════════════════════════════════════════
-function applyClownPenalty(i1, i2) {
-  if (!S.gameActive) return;
-  const c1 = S.cards[i1];
-  const c2 = S.cards[i2];
-
-  // Screen shake on the game screen
-  gameEl.classList.add('screen-shake');
-  setTimeout(() => gameEl.classList.remove('screen-shake'), 450);
-
-  // Temporarily change both mismatched cards to clown emoji
-  const front1 = c1.element.querySelector('.card-front');
-  const front2 = c2.element.querySelector('.card-front');
-  const orig1 = front1.textContent;
-  const orig2 = front2.textContent;
-
-  front1.textContent = '🤡';
-  front2.textContent = '🤡';
-
-  // Show a floating text
-  const rect = c1.element.getBoundingClientRect();
-  showFloatingText('🤡 Amnesia!', rect.left + rect.width/2, rect.top - 10);
-
-  // Flip back after 2 seconds
-  setTimeout(() => {
-    if (!S.gameActive) return;
-    front1.textContent = orig1;
-    front2.textContent = orig2;
-  }, 2000);
-}
 
 // ══════════════════════════════════════════════════════════════
 //  X-RAY AUTO FLASH (Rare Pair Reward)
 // ══════════════════════════════════════════════════════════════
-function triggerXrayFlash() {
-  if (!S.gameActive) return;
-
-  // Visual flash overlay
-  const flash = document.createElement('div');
-  flash.className = 'xray-flash-overlay';
-  document.body.appendChild(flash);
-  setTimeout(() => flash.remove(), 650);
-
-  // Flip all unrevealed, unmatched cards face-up
-  const faceDown = S.cards.filter(c => !c.matched && !c.flipped);
-  faceDown.forEach(c => c.element.classList.add('flipped'));
-
-  // Flip them back down after 0.6s
-  setTimeout(() => {
-    faceDown.forEach(c => {
-      if (!c.matched) c.element.classList.remove('flipped');
-    });
-  }, 600);
-}
 
 // ══════════════════════════════════════════════════════════════
 //  X-RAY (Earned)
 // ══════════════════════════════════════════════════════════════
-function activateXray() {
-  if (!S.gameActive || S.xrayCharges <= 0) return;
-
-  const faceDown = [];
-  S.cards.forEach((card) => {
-    if (!card.matched && !card.flipped) {
-      faceDown.push(card);
-    }
-  });
-
-  if (faceDown.length === 0) return;
-
-  faceDown.forEach(card => { card.element.classList.add('flipped'); });
-
-  setTimeout(() => {
-    faceDown.forEach(card => {
-      if (!card.matched) card.element.classList.remove('flipped');
-    });
-  }, 500);
-
-  S.xrayCharges--;
-  updateXrayUI();
-}
-
-function updateXrayUI() {
-  const label = S.xrayCharges > 0 ? `👁️×${S.xrayCharges}` : '👁️×0';
-  xrayHud.textContent = label;
-  xrayLabel.textContent = S.xrayCharges > 0 ? `${S.xrayCharges} peek${S.xrayCharges>1?'s':''}` : 'peek';
-  if (S.xrayCharges === 0) {
-    xrayBtn.classList.add('opacity-40');
-  } else {
-    xrayBtn.classList.remove('opacity-40');
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 //  FLOATING TEXT
@@ -1604,69 +1308,30 @@ function spawnConfetti(x, y) {
 // ══════════════════════════════════════════════════════════════
 //  VISUAL FADE DECAY
 // ══════════════════════════════════════════════════════════════
-function startFadeDecay() {
-  stopFadeDecay();
-  S.fadeLevel = 0;
-  // Fade interval scales with card count so bigger boards aren't unfairly rushed
-  // 12 cards ≈ 16s  /  16 cards ≈ 19s  /  20 cards ≈ 21s  /  24 cards ≈ 23s per level
-  const interval = 9000 + S.totalPairs * 1200;
-  S.fadeTimer = setInterval(() => {
-    if (!S.gameActive) return;
-    S.fadeLevel++;
-    if (S.fadeLevel > 5) { stopFadeDecay(); return; }
-    S.cards.forEach(card => {
-      if (!card.matched && !card.flipped) {
-        // remove old faded classes
-        for (let i = 1; i <= 5; i++) card.element.classList.remove(`faded-${i}`);
-        card.element.classList.add(`faded-${Math.min(5, S.fadeLevel)}`);
-      }
-    });
-  }, interval);
-}
-
-function stopFadeDecay() {
-  if (S.fadeTimer) { clearInterval(S.fadeTimer); S.fadeTimer = null; }
-}
 
 // ══════════════════════════════════════════════════════════════
 //  TIMER
 // ══════════════════════════════════════════════════════════════
 function startTimer() {
-  stopTimer();
-  S.timeLeft = START_TIME;
-  S.maxTime = START_TIME;
-  updateTimerBar();
-  S.timerId = setInterval(() => {
-    const drainMultiplier = GAME_CONFIG.ACCELERATE_TIMER ? 1 + S.matchedPairs * 0.05 : 1;
-    S.timeLeft -= (TIMER_INTERVAL / 1000) * drainMultiplier;
-    if (S.timeLeft <= 0) {
-      S.timeLeft = 0;
-      updateTimerBar();
-      gameOver();
-    } else {
-      updateTimerBar();
-    }
-  }, TIMER_INTERVAL);
+  if (S.elapsedTimerId) clearInterval(S.elapsedTimerId);
+  S.elapsedTimerId = setInterval(() => {
+    if (!S.gameActive) return;
+    S.elapsedTime += 0.05;
+    updateElapsedDisplay();
+  }, 50);
 }
 
 function stopTimer() {
-  if (S.timerId) { clearInterval(S.timerId); S.timerId = null; }
-}
-
-function addTime(sec) {
-  S.timeLeft += sec;
-  S.timeLeft = Math.min(S.timeLeft, S.maxTime + 5);
-  updateTimerBar();
+  if (S.elapsedTimerId) { clearInterval(S.elapsedTimerId); S.elapsedTimerId = null; }
 }
 
 function updateTimerBar() {
-  const pct = Math.max(0, (S.timeLeft / S.maxTime) * 100);
+  // Elapsed time display: show progress as percentage (0-100% based on 5 min max)
+  const maxElapsed = 300; // 5 minutes
+  const pct = Math.min(100, (S.elapsedTime / maxElapsed) * 100);
   timerBarTop.style.width = `${pct}%`;
-  const color = pct <= 25 ? '#f59e0b' : '#22d3ee';
-  timerBarTop.style.background = color;
-  timerBarTop.classList.toggle('timer-critical', pct <= 10 && S.gameActive);
-  const adrenaline = S.gameActive && pct <= ADRENALINE_THRESHOLD * 100;
-  gameEl.classList.toggle('adrenaline-mode', adrenaline);
+  timerBarTop.style.background = '#22d3ee';
+  timerBarTop.classList.remove('timer-critical');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1699,83 +1364,163 @@ function updateComboDisplay() {
 // ══════════════════════════════════════════════════════════════
 //  GAME OVER / VICTORY
 // ══════════════════════════════════════════════════════════════
-function gameOver() {
-  S.gameActive = false;
-  stopTimer();
-  stopFadeDecay();
-  if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
-  S.isBoardLocked = false;
-  gameEl.classList.remove('board-locked');
-  // Make sure victory banner is hidden on game over
-  if (victoryBanner) {
-    victoryBanner.classList.remove('show');
-    victoryBanner.classList.add('hidden');
+
+function getGridLayout(count) {
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  if (rows > cols + 1) { return { cols: rows, rows: cols }; }
+  return { cols, rows };
+}
+
+function showBanner(msg, cssClass) {
+  if (!gameStatusAnnouncer || !bannerInner) return;
+  bannerInner.textContent = msg;
+  bannerInner.className = "banner-inner " + cssClass;
+  gameStatusAnnouncer.classList.add("show");
+  setTimeout(() => { gameStatusAnnouncer.classList.remove("show"); }, 2200);
+}
+
+function updateElapsedDisplay() {
+  const mins = Math.floor(S.elapsedTime / 60);
+  const secs = Math.floor(S.elapsedTime % 60);
+  const frac = Math.floor((S.elapsedTime % 1) * 100);
+  const text = `${mins}:${secs.toString().padStart(2,"0")}.${frac.toString().padStart(2,"0")}`;
+}
+
+function triggerClairvoyance() {
+  S.isBoardLocked = true;
+  S.clairvoyanceActive = true;
+  showBanner("🔮 CLAIRVOYANCE: Photographic memory test!", "banner-clairvoyance");
+  const unrevealed = S.cards.filter(c => !c.matched && !c.flipped);
+  unrevealed.forEach(c => { c.element.classList.add("clairvoyance-flip"); });
+  setTimeout(() => {
+    unrevealed.forEach(c => { c.element.classList.remove("clairvoyance-flip"); });
+    S.clairvoyanceActive = false;
+    S.isBoardLocked = false;
+  }, CLAIRVOYANCE_DURATION);
+}
+
+function triggerTimeWarp(midX, midY) {
+  S.elapsedTime = Math.max(0, S.elapsedTime - TIMEWARP_DEDUCTION);
+  showBanner("⏰ TIME WARP: 10 seconds shaved off!", "banner-timewarp");
+  const floatEl = document.createElement("div");
+  floatEl.className = "floating-time-bonus";
+  floatEl.textContent = "-10s";
+  floatEl.style.left = `${midX}px`;
+  floatEl.style.top = `${midY}px`;
+  document.body.appendChild(floatEl);
+  setTimeout(() => floatEl.remove(), 1200);
+}
+
+function triggerSecurityLockdown() {
+  S.isBoardLocked = true;
+  showBanner("🔓 SECURITY LOCKDOWN: Inputs frozen for 3s!", "banner-lockdown");
+  const wrapper = document.getElementById("gridWrapper");
+  let overlay = wrapper.querySelector(".freeze-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "freeze-overlay";
+    wrapper.style.position = "relative";
+    wrapper.appendChild(overlay);
   }
+  overlay.classList.add("active");
+  S.boardLockTimer = setTimeout(() => {
+    overlay.classList.remove("active");
+    S.isBoardLocked = false;
+    S.boardLockTimer = null;
+  }, LOCKDOWN_DURATION);
+}
+
+function triggerClusterBomb() {
+  if (S.bombTriggered) return;
+  S.bombTriggered = true;
+  showBanner("💣 DETONATION: 4 new cards added to the grid!", "banner-detonation");
+  const grid = document.getElementById("grid");
+  grid.classList.add("explosion-shake");
+  setTimeout(() => grid.classList.remove("explosion-shake"), 600);
+  const backup = ALL_EMOJIS.filter(e => !S.emojis.includes(e));
+  if (backup.length < 2) return;
+  const newEmojis = backup.slice(0, 2);
+  S.emojis.push(...newEmojis);
+  S.totalPairs += 2;
+  const size = calculateCardSize();
+  const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
+  newEmojis.forEach((emoji) => {
+    for (let k = 0; k < 2; k++) {
+      const idx = S.cards.length;
+      const wrapper = document.createElement("div");
+      wrapper.className = "card";
+      wrapper.dataset.index = idx;
+      wrapper.style.width = `${size}px`;
+      wrapper.style.height = `${size}px`;
+      const inner = document.createElement("div");
+      inner.className = "card-inner";
+      const back = document.createElement("div");
+      back.className = "card-face card-back";
+      const front = document.createElement("div");
+      front.className = "card-face card-front";
+      front.textContent = emoji;
+      front.style.fontSize = `${emojiSize}px`;
+      front.style.lineHeight = "1";
+      inner.appendChild(back);
+      inner.appendChild(front);
+      wrapper.appendChild(inner);
+      wrapper.addEventListener("click", () => onCardClick(idx));
+      wrapper.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        onCardClick(idx);
+      }, { passive: false });
+      grid.appendChild(wrapper);
+      S.cards.push({ emoji, matched: false, flipped: false, element: wrapper, index: idx });
+      S.flipCounts.push(0);
+    }
+  });
+  const count = S.cards.length;
+  const dims = getGridLayout(count);
+  GAME_CONFIG.GRID_COLS = dims.cols;
+  GAME_CONFIG.GRID_ROWS = dims.rows;
+  grid.style.gridTemplateColumns = `repeat(${dims.cols}, ${size}px)`;
+  grid.style.gridTemplateRows = `repeat(${dims.rows}, ${size}px)`;
+  buildUnderlayGrid(size, count);
+}
+
+
+function gameOver() {
+  S.gameActive = false; stopTimer();
+  if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
+  S.isBoardLocked = false; gameEl.classList.remove("board-locked");
+  if (victoryBanner) { victoryBanner.classList.remove("show"); victoryBanner.classList.add("hidden"); }
   showOverlay();
 }
 
 function victory() {
-  S.gameActive = false;
-  stopTimer();
-  stopFadeDecay();
+  S.gameActive = false; stopTimer();
   if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
-  S.isBoardLocked = false;
-  gameEl.classList.remove('board-locked');
-  underlayGrid.classList.add('underlay-victory');
-
-  // Show extravagant Victory banner on the game screen
-  if (victoryBanner) {
-    victoryBanner.classList.remove('hidden');
-    // Force reflow so transition plays
-    void victoryBanner.offsetWidth;
-    victoryBanner.classList.add('show');
-  }
-
-  // Brighten bg + sparkle for 3s before showing summary
+  S.isBoardLocked = false; gameEl.classList.remove("board-locked");
+  underlayGrid.classList.add("underlay-victory");
+  if (victoryBanner) { victoryBanner.classList.remove("hidden"); void victoryBanner.offsetWidth; victoryBanner.classList.add("show"); }
   setTimeout(() => {
-    if (victoryBanner) {
-      victoryBanner.classList.remove('show');
-      setTimeout(() => victoryBanner.classList.add('hidden'), 400);
-    }
-    showOverlay('Victory!');
+    if (victoryBanner) { victoryBanner.classList.remove("show"); setTimeout(() => victoryBanner.classList.add("hidden"), 400); }
+    showOverlay();
   }, 3000);
 }
 
 function showOverlay() {
-  gameEl.classList.remove('adrenaline-mode');
-  xrayContainer.classList.add('hidden');
-
-  // Hide game header so summary is the only thing visible
-  const hudCompact = document.getElementById('hudCompact');
-  const hudFull = document.getElementById('hudFull');
-  const timerBar = document.getElementById('timerBarTop').parentElement;
-  if (hudCompact) hudCompact.classList.add('hidden');
-  if (hudFull) hudFull.classList.add('hidden');
-  if (timerBar) timerBar.classList.add('hidden');
-
-  // Simplified stats: "Completed in X moves and Y.X minutes"
-  const elapsed = S.sessionStartTime ? ((performance.now() - S.sessionStartTime) / 60000).toFixed(1) : '0.0';
-  if (summaryStats) {
-    summaryStats.textContent = `Completed in ${S.moves} moves and ${elapsed} minutes`;
-  }
-
-  // Tempo map
+  gameEl.classList.remove("adrenaline-mode");
+  const hudCompact = document.getElementById("hudCompact");
+  const hudFull = document.getElementById("hudFull");
+  const timerBar = document.getElementById("timerBarTop");
+  if (hudCompact) hudCompact.classList.add("hidden");
+  if (hudFull) hudFull.classList.add("hidden");
+  if (timerBar) timerBar.parentElement.classList.add("hidden");
+  const elapsed = S.firstFlipTime ? ((performance.now() - S.firstFlipTime) / 60000).toFixed(1) : "0.0";
+  if (summaryStats) { summaryStats.textContent = `Completed in ${S.moves} moves and ${elapsed} minutes`; }
   renderTempoMap();
-
-  // Tomorrow countdown (daily mode)
-  if (S.mode === 'daily') {
-    tomorrowCountdown.classList.remove('hidden');
-    updateTomorrowCountdown();
-    if (!window._tomorrowInterval) {
-      window._tomorrowInterval = setInterval(updateTomorrowCountdown, 1000);
-    }
-  } else {
-    tomorrowCountdown.classList.add('hidden');
-  }
-
-  gameOverlay.classList.remove('hidden');
-
-  // Persist stats
+  if (S.mode === "daily") {
+    tomorrowCountdown.classList.remove("hidden"); updateTomorrowCountdown();
+    if (!window._tomorrowInterval) window._tomorrowInterval = setInterval(updateTomorrowCountdown, 1000);
+  } else { tomorrowCountdown.classList.add("hidden"); }
+  gameOverlay.classList.remove("hidden");
   persistStats(S.matchedPairs >= S.totalPairs);
 }
 
@@ -1922,7 +1667,7 @@ function shareScore() {
     header,
     ``,
     `🏆 Top ${pct}% today`,
-    `⏱️ ${formatTime(Math.floor(S.timeLeft))} | 🕹️ ${S.moves} moves`,
+    `\u23F1\uFE0F ${formatTime(Math.floor(S.elapsedTime))} | \u{1F579}\u{FE0F} ${S.moves} moves`,
     `🔥 x${S.maxCombo + 1} combo`,
     ``,
     tempoStr.trim(),
@@ -1969,75 +1714,43 @@ function showShareCopied() {
 //  RESTART / NAVIGATION
 // ══════════════════════════════════════════════════════════════
 function playAgain() {
-  stopTimer();
-  stopFadeDecay();
-  gameOverlay.classList.add('hidden');
-  xrayContainer.classList.remove('hidden');
-
-  // Show game header again
-  const hudCompact = document.getElementById('hudCompact');
-  const hudFull = document.getElementById('hudFull');
-  const timerBar = document.getElementById('timerBarTop').parentElement;
-  if (hudCompact) hudCompact.classList.remove('hidden');
-  if (hudFull) hudFull.classList.remove('hidden');
-  if (timerBar) timerBar.classList.remove('hidden');
-
-  // Hide victory banner
-  if (victoryBanner) {
-    victoryBanner.classList.remove('show');
-    victoryBanner.classList.add('hidden');
-  }
-
+  stopTimer(); gameOverlay.classList.add("hidden");
+  const hudCompact = document.getElementById("hudCompact");
+  const hudFull = document.getElementById("hudFull");
+  const timerBar = document.getElementById("timerBarTop");
+  if (hudCompact) hudCompact.classList.remove("hidden");
+  if (hudFull) hudFull.classList.remove("hidden");
+  if (timerBar) timerBar.parentElement.classList.remove("hidden");
+  if (victoryBanner) { victoryBanner.classList.remove("show"); victoryBanner.classList.add("hidden"); }
   S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
   S.flipHistory = []; S.pairTimes = [];
   S.matchedPairs = 0; S.flippedIndices = [];
-  S.isProcessing = false; S.gameActive = false; S.xrayCharges = 0;
-  S.fadeLevel = 0;
-  S.goldenEmoji = null; S.mimicEmoji = null; S.xrayTriggerEmoji = null;
+  S.isProcessing = false; S.gameActive = false;
+  S.elapsedTime = 0; S.elapsedTimerId = null; S.firstFlipTime = 0;
   S.isBoardLocked = false; S.boardLockTimer = null;
-  S.mistakeTracker = {}; S.lastMistakeKey = null;
-  S.goldenRevealed = false;
-  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
-
-  updateXrayUI();
-
-  shareBtn.innerHTML = '<span>📤</span> Share';
-  shareBtn.classList.remove('bg-emerald-800', 'border-emerald-700');
-  shareBtn.classList.add('bg-zinc-800', 'border-zinc-700/60');
-
-  updateScore();
-  updateComboDisplay();
-  initGame();
+  S.bombTriggered = false; S.clairvoyanceActive = false;
+  underlayGrid.classList.remove("underlay-breathe", "underlay-victory");
+  shareBtn.innerHTML = "<span>📤</span> Share";
+  shareBtn.classList.remove("bg-emerald-800", "border-emerald-700");
+  shareBtn.classList.add("bg-zinc-800", "border-zinc-700/60");
+  updateScore(); updateComboDisplay(); initGame();
 }
 
 function backToMenu() {
   stopTimer();
-  stopFadeDecay();
-  // Clear any active board lock
   if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
-  S.isBoardLocked = false;
-  gameEl.classList.remove('board-locked');
-  gameOverlay.classList.add('hidden');
-  xrayContainer.classList.remove('hidden');
-
-  // Show game header again
-  const hudCompact = document.getElementById('hudCompact');
-  const hudFull = document.getElementById('hudFull');
-  const timerBar = document.getElementById('timerBarTop').parentElement;
-  if (hudCompact) hudCompact.classList.remove('hidden');
-  if (hudFull) hudFull.classList.remove('hidden');
-  if (timerBar) timerBar.classList.remove('hidden');
-
-  // Hide victory banner
-  if (victoryBanner) {
-    victoryBanner.classList.remove('show');
-    victoryBanner.classList.add('hidden');
-  }
-
-  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
+  S.isBoardLocked = false; gameEl.classList.remove("board-locked");
+  gameOverlay.classList.add("hidden");
+  const hudCompact = document.getElementById("hudCompact");
+  const hudFull = document.getElementById("hudFull");
+  const timerBar = document.getElementById("timerBarTop");
+  if (hudCompact) hudCompact.classList.remove("hidden");
+  if (hudFull) hudFull.classList.remove("hidden");
+  if (timerBar) timerBar.parentElement.classList.remove("hidden");
+  if (victoryBanner) { victoryBanner.classList.remove("show"); victoryBanner.classList.add("hidden"); }
+  underlayGrid.classList.remove("underlay-breathe", "underlay-victory");
   if (heroInterval) clearInterval(heroInterval);
-  showScreen('landing');
-  initLanding();
+  showScreen("landing"); initLanding();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2045,24 +1758,12 @@ function backToMenu() {
 // ══════════════════════════════════════════════════════════════
 function initGame() {
   S.gameActive = false;
-  S.xrayCharges = 0;
-  S.fadeLevel = 0;
-  S.sessionStartTime = performance.now();
-  S.isBoardLocked = false;
-  S.boardLockTimer = null;
-  S.mistakeTracker = {};
-  S.lastMistakeKey = null;
-  S.goldenRevealed = false;
-  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
-
-  buildGrid();
-  updateScore();
-  updateComboDisplay();
-  updateXrayUI();
-
+  S.elapsedTime = 0; S.elapsedTimerId = null; S.firstFlipTime = 0;
+  S.isBoardLocked = false; S.boardLockTimer = null;
+  S.bombTriggered = false; S.clairvoyanceActive = false;
+  underlayGrid.classList.remove("underlay-breathe", "underlay-victory");
+  buildGrid(); updateScore(); updateComboDisplay(); updateElapsedDisplay();
   S.gameActive = true;
-  startTimer();
-  startFadeDecay();
 }
 
 // ─── Handle resize/orientation change ───
@@ -2073,6 +1774,7 @@ window.addEventListener('resize', () => {
     if (S.gameActive) {
       const matchedEmojis = S.cards.filter(c => c.matched).map(c => c.emoji);
       buildGrid();
+      // Restore matched state after resize rebuild
       S.cards.forEach(c => {
         if (matchedEmojis.includes(c.emoji)) {
           c.matched = true;
@@ -2080,20 +1782,15 @@ window.addEventListener('resize', () => {
           c.element.classList.add('flipped', 'matched');
         }
       });
-      // Restore fade levels
-      S.cards.forEach(c => {
-        if (!c.matched && !c.flipped && S.fadeLevel > 0) {
-          c.element.classList.add(`faded-${Math.min(5, S.fadeLevel)}`);
-        }
-      });
     }
   }, 200);
 });
 
-function getGridDims(count) {
-  const cols = 4;
-  const rows = count / cols;
-  return { rows, cols };
+function getGridLayout(count) {
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  if (rows > cols + 1) { return { cols: rows, rows: cols }; }
+  return { cols, rows };
 }
 
 function getCardCount() {
@@ -2103,7 +1800,6 @@ function getCardCount() {
 }
 
 // ─── Button hooks ───
-xrayBtn.addEventListener('click', activateXray);
 shareBtn.addEventListener('click', shareScore);
 replayBtn.addEventListener('click', playAgain);
 backBtn.addEventListener('click', backToMenu);
@@ -2111,7 +1807,6 @@ backBtn.addEventListener('click', backToMenu);
 // ─── Keyboard shortcuts ───
 document.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') playAgain();
-  if (e.key === 'x' || e.key === 'X') activateXray();
   if (e.key === 'Escape') backToMenu();
 });
 
