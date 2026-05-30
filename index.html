@@ -333,8 +333,9 @@
 
     /* ─── Underlay Figurative Reveal ─── */
     /* A large emoji changes every day so players stay curious about  */
-    /* what is hidden beneath the cards.  Matched cards fade away,  */
-    /* progressively revealing the daily mystery figure.             */
+    /* what is hidden beneath the cards.  Matched cards stay visible  */
+    /* but their front-face emoji fades, progressively revealing the   */
+    /* daily mystery figure beneath.                                   */
     #gridWrapper { position: relative; }
 
     #underlayGrid {
@@ -356,25 +357,36 @@
       font-size: clamp(72px, 22vw, 240px);
       line-height: 1;
       filter: drop-shadow(0 0 22px rgba(255,255,255,0.12)) drop-shadow(0 0 8px rgba(0,0,0,0.7));
-      opacity: 0.82;
+      opacity: 0.30; /* dim during play */
       user-select: none;
       -webkit-user-select: none;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.6s ease, filter 0.6s ease;
+    }
+
+    /* Brighten to full color on victory */
+    .underlay-victory .underlay-emoji {
+      opacity: 1 !important;
+      filter: drop-shadow(0 0 32px rgba(255,255,255,0.35)) drop-shadow(0 0 12px rgba(0,0,0,0.4)) !important;
     }
 
     /* Breathe animation when the figure is partially revealed */
     @keyframes underlayBreathe {
-      0%, 100% { opacity: 0.82; transform: scale(1); }
-      50%      { opacity: 0.98; transform: scale(1.04); }
+      0%, 100% { opacity: 0.30; transform: scale(1); }
+      50%      { opacity: 0.48; transform: scale(1.04); }
     }
     .underlay-breathe .underlay-emoji {
       animation: underlayBreathe 3.5s ease-in-out infinite;
     }
 
-    .card.matched.reveal-underlay {
-      opacity: 0 !important;
-      transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s !important;
-      pointer-events: none !important;
+    /* Matched cards: keep the card visible, fade only the front-face emoji
+       so the background underlay is progressively revealed. */
+    .reveal-mode .card.matched .card-front {
+      color: transparent !important;
+      background: rgba(24, 24, 27, 0.18) !important;
+      border-color: rgba(255, 255, 255, 0.04) !important;
+      transition: color 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s,
+                  background 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s,
+                  border-color 0.55s cubic-bezier(0.4,0,0.2,1) 0.08s !important;
     }
 
     /* ─── Golden Pair Glow ─── */
@@ -1221,10 +1233,8 @@ function handleMatch(i1, i2) {
   c1.element.classList.add('matched');
   c2.element.classList.add('matched');
 
-  // Underlay Reveal: matched cards fade to show background image beneath
+  // Underlay Reveal: matched cards keep their back visible but front-face emoji fades
   if (GAME_CONFIG.UNDERLAY_REVEAL) {
-    c1.element.classList.add('reveal-underlay');
-    c2.element.classList.add('reveal-underlay');
     // Start the subtle breathing animation once the figure is partially visible
     if (S.matchedPairs >= 0 && !underlayGrid.classList.contains('underlay-breathe')) {
       underlayGrid.classList.add('underlay-breathe');
@@ -1350,7 +1360,10 @@ function buildUnderlayGrid(cellSize, totalCards) {
   const totalW = (GAME_CONFIG.GRID_COLS * cellSize) + ((GAME_CONFIG.GRID_COLS - 1) * GRID_GAP);
   const totalH = (GAME_CONFIG.GRID_ROWS * cellSize) + ((GAME_CONFIG.GRID_ROWS - 1) * GRID_GAP);
 
-  underlayGrid.innerHTML = `<div class="underlay-emoji">${getDailyEmoji()}</div>`;
+  // Emoji fills ~80% of the gameboard (grid) area
+  const emojiSize = Math.round(Math.min(totalW, totalH) * 0.80);
+
+  underlayGrid.innerHTML = `<div class="underlay-emoji" style="font-size:${emojiSize}px">${getDailyEmoji()}</div>`;
   underlayGrid.style.width = `${totalW}px`;
   underlayGrid.style.height = `${totalH}px`;
 }
@@ -1692,6 +1705,7 @@ function victory() {
   if (S.boardLockTimer) { clearTimeout(S.boardLockTimer); S.boardLockTimer = null; }
   S.isBoardLocked = false;
   gameEl.classList.remove('board-locked');
+  underlayGrid.classList.add('underlay-victory');
   showOverlay('🏆', 'Victory!');
 }
 
@@ -1951,7 +1965,7 @@ function playAgain() {
   S.isBoardLocked = false; S.boardLockTimer = null;
   S.mistakeTracker = {}; S.lastMistakeKey = null;
   S.goldenRevealed = false;
-  underlayGrid.classList.remove('underlay-breathe');
+  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
 
   updateXrayUI();
 
@@ -1973,7 +1987,7 @@ function backToMenu() {
   gameEl.classList.remove('board-locked');
   gameOverlay.classList.add('hidden');
   xrayContainer.classList.remove('hidden');
-  underlayGrid.classList.remove('underlay-breathe');
+  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
   if (heroInterval) clearInterval(heroInterval);
   showScreen('landing');
   initLanding();
@@ -1992,7 +2006,7 @@ function initGame() {
   S.mistakeTracker = {};
   S.lastMistakeKey = null;
   S.goldenRevealed = false;
-  underlayGrid.classList.remove('underlay-breathe');
+  underlayGrid.classList.remove('underlay-breathe', 'underlay-victory');
 
   buildGrid();
   updateScore();
