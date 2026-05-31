@@ -1673,64 +1673,138 @@ function persistStats(won) {
 // ══════════════════════════════════════════════════════════════
 //  SHARE MODULE
 // ══════════════════════════════════════════════════════════════
+const FLEX_THRESHOLD = 25; // show flex text when finishRate ≤ this
+
 const SHARE_EMOJI = { cool: '🟦', clutch: '🟧', faded: '🟥' };
 
-function _formatShareTime(ms) {
-  const totalSec = Math.floor(ms / 1000);
+function _fmtShareTime(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function buildShareString(run) {
-  const lines = [`FADE #${run.puzzleNumber} · ${run.mode} 💨`];
+  const {
+    puzzleNumber,
+    mode,
+    timeMs,
+    streak,
+    pairs,
+    finishRate,
+    baseUrl,
+    percentile
+  } = run;
 
-  let line2 = `⏱ ${_formatShareTime(run.timeMs)}  🔥${run.streak}`;
-  if (typeof run.percentile === 'number') line2 += ` · top ${run.percentile}%`;
-  lines.push(line2);
+  const modeSlug = mode.toLowerCase().replace(/\s+/g, '-');
 
-  const trail = run.pairs.map(p => SHARE_EMOJI[p] || '🟦').join('');
-  lines.push(trail);
+  // Line 1
+  const line1 = `FADE #${puzzleNumber} · ${mode} 💨`;
 
-  const clutchCount = run.pairs.filter(p => p === 'clutch').length;
-  const fadedCount  = run.pairs.filter(p => p === 'faded').length;
+  // Line 2
+  let line2 = `⏱ ${_fmtShareTime(timeMs)}  🔥${streak}`;
+  if (finishRate <= FLEX_THRESHOLD) {
+    line2 += `  · only ${finishRate}% clear this`;
+  }
+  if (percentile != null) {
+    line2 += `  · top ${percentile}%`;
+  }
+
+  // Line 3 – fade trail (single line, spoiler-free)
+  const line3 = pairs.map(p => SHARE_EMOJI[p] || '').join('');
+
+  // Line 4
+  const clutchCount = pairs.filter(p => p === 'clutch').length;
+  const hasFaded = pairs.some(p => p === 'faded');
   let line4 = `⚡${clutchCount} clutch`;
-  if (fadedCount === 0) line4 += ' · ✨clean';
-  lines.push(line4);
+  if (!hasFaded) {
+    line4 += ' · ✨clean';
+  }
 
-  lines.push(`▶ ${run.shareUrl}`);
-  return lines.join('\n');
+  // Line 5
+  const challengeUrl = `${baseUrl}#${puzzleNumber}-${modeSlug}`;
+  const line5 = `👉 beat me: ${challengeUrl}`;
+
+  return [line1, line2, line3, line4, line5].join('\n');
 }
 
 async function shareResult(run) {
   const text = buildShareString(run);
-  if (navigator.share) {
-    try { await navigator.share({ title: 'FADE', text }); return true; } catch (e) {}
+
+  const canNative = typeof navigator !== 'undefined'
+    && navigator.share
+    && (!navigator.canShare || navigator.canShare({ text }));
+
+  if (canNative) {
+    try {
+      await navigator.share({ text });
+      return 'shared';
+    } catch (err) {
+      // User cancelled or share failed — fall through
+    }
   }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    try { await navigator.clipboard.writeText(text); return false; } catch (e) {}
+
+  // Clipboard fallback
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return 'copied';
+    } catch (err) {
+      // Non-secure context (HTTP) blocks Clipboard API — try execCommand
+    }
   }
+
+  // execCommand fallback for HTTP or very old browsers
   const ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); } catch (e) { alert(text); }
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
   document.body.removeChild(ta);
-  return false;
+  return ok ? 'copied' : 'failed';
 }
 
-// Adapter: wires game state into the share module
+// ══════════════════════════════════════════════════════════════
+//  SHARE ADAPTER (wires game state into the module above)
+// ══════════════════════════════════════════════════════════════
+
+const TIER_FINISH_RATES = { 12: 40, 16: 15, 20: 12, 24: 3 };
+const TIER_NAMES = { 12: 'Warm-up', 16: 'Classic', 20: 'Hard', 24: 'Brutal' };
+
+function getDailyNumber() {
+  const epoch = new Date('2024-01-01T00:00:00Z');
+  const today = new Date(getTodayUTC() + 'T00:00:00Z');
+  return Math.floor((today - epoch) / 86400000) + 1;
+}
+
+function getGameBaseUrl() {
+  // Works on GitHub Pages, localhost, or any static host
+  const loc = window.location;
+  return `${loc.origin}${loc.pathname}`;
+}
+
 async function shareScore() {
+  const count = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
+  const modeName = S.mode === 'daily' ? 'Daily' : (TIER_NAMES[count] || 'Classic');
+  const finishRate = TIER_FINISH_RATES[count] || 15;
+
   const run = {
-    puzzleNumber: getDailyNumber ? getDailyNumber() : 1,
-    mode: (S.mode === 'daily' ? 'Daily' : (S.tierName || 'Classic')),
+    puzzleNumber: getDailyNumber(),
+    mode: modeName,
     timeMs: S.elapsedTime,
-    streak: (S.streak || 0),
+    streak: (STATS.streak || 0),
     pairs: S.pairRecoveryTypes.slice(),
-    shareUrl: GAME_URL,
+    finishRate,
+    baseUrl: getGameBaseUrl(),
     percentile: computePercentile(S.score),
   };
-  const usedNative = await shareResult(run);
-  if (!usedNative) showShareCopied();
+
+  const result = await shareResult(run);
+  if (result === 'copied' || result === 'failed') {
+    showShareCopied();
+  }
 }
 
 function showShareCopied() {
