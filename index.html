@@ -80,103 +80,166 @@
     }
     */
 
-    /* ─── Landing ─── */
+    /* ─── Landing / Menu ─── */
     #landingScreen { background: #09090b; }
-    .landing-hero {
-      flex: 0 0 auto;
+
+    .menu-container {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 20px 16px 8px;
+      padding: 24px 16px 16px;
+      gap: 16px;
+      overflow-y: auto;
     }
-    .hero-board {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+
+    /* 1. Title as fading letter-cards */
+    .title-cards {
+      display: flex;
       gap: 8px;
-      width: 160px;
-      margin-bottom: 10px;
+      justify-content: center;
     }
-    .hero-card {
-      aspect-ratio: 1;
+    .title-card {
+      width: 56px;
+      height: 56px;
       background: #18181b;
       border: 1px solid #27272a;
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
-      transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-      transform-style: preserve-3d;
+      animation: titleFade 3s ease-in-out infinite;
     }
-    .hero-card.flipped { background: #18181b; border-color: rgba(255,255,255,0.12); }
-    .hero-card.matched { opacity: 0; transform: scale(0.9); }
-    .hero-card.faded { filter: grayscale(1) opacity(0.35); border-color: #3f3f46; }
-
-    .landing-title {
-      font-size: 42px;
+    .title-card:nth-child(1) { animation-delay: 0s; }
+    .title-card:nth-child(2) { animation-delay: 0.5s; }
+    .title-card:nth-child(3) { animation-delay: 1.0s; }
+    .title-card:nth-child(4) { animation-delay: 1.5s; }
+    .title-letter {
+      font-size: 24px;
       font-weight: 900;
-      letter-spacing: -0.06em;
       color: #f4f4f5;
-      text-align: center;
       line-height: 1;
-      margin-bottom: 10px;
-      text-shadow: 0 0 30px rgba(34,211,238,0.15);
     }
-    .landing-tagline {
+    @keyframes titleFade {
+      0%, 100% { opacity: 1; filter: none; }
+      50% { opacity: 0.15; filter: grayscale(1) brightness(0.4); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .title-card { animation: none !important; opacity: 1 !important; filter: none !important; }
+    }
+
+    /* 2. Explainer */
+    .menu-explainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .menu-tagline {
       font-size: 12px;
       color: #a1a1aa;
       text-align: center;
       letter-spacing: 0.04em;
-      margin-bottom: 4px;
+      margin: 0;
     }
-
-    .landing-scroll {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 0 16px 16px;
+    .menu-howto-btn {
+      font-size: 11px;
+      color: #22d3ee;
+      background: none;
+      border: none;
+      padding: 2px 6px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-family: 'Unbounded', sans-serif;
     }
+    .menu-howto-btn:active { opacity: 0.7; }
 
-    /* ─── Daily Card ─── */
-    .daily-card {
-      background: linear-gradient(135deg, rgba(34,211,238,0.08) 0%, rgba(34,211,238,0.02) 100%);
-      border: 1px solid rgba(34,211,238,0.25);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
+    /* 3. Daily Challenge — Primary Hero */
+    .daily-hero {
+      width: 100%;
+      max-width: 360px;
+      background: linear-gradient(135deg, rgba(34,211,238,0.12) 0%, rgba(34,211,238,0.03) 100%);
+      border: 1px solid rgba(34,211,238,0.35);
+      border-radius: 12px;
+      padding: 18px 16px;
       cursor: pointer;
       transition: border-color 0.2s, transform 0.15s;
     }
-    .daily-card:hover { border-color: rgba(34,211,238,0.5); }
-    .daily-card:active { transform: scale(0.98); }
-    .daily-card.locked {
+    .daily-hero:hover { border-color: rgba(34,211,238,0.6); }
+    .daily-hero:active { transform: scale(0.98); }
+    .daily-hero.locked {
       background: rgba(39,39,42,0.4);
       border-color: #27272a;
       cursor: default;
     }
-    .daily-card.locked:hover { border-color: #27272a; }
-    .daily-card.locked:active { transform: none; }
-    .daily-label {
+    .daily-hero.locked:hover { border-color: #27272a; }
+    .daily-hero.locked:active { transform: none; }
+    .daily-hero-label {
       font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
       color: #22d3ee;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
-    .daily-date { font-size: 13px; font-weight: 700; color: #f4f4f5; }
-    .daily-streak { font-size: 11px; color: #fbbf24; margin-top: 3px; }
-    .daily-countdown { font-size: 10px; color: #a1a1aa; margin-top: 3px; font-family: 'Space Mono', monospace; }
+    .daily-hero-date { font-size: 14px; font-weight: 700; color: #f4f4f5; }
+    .daily-hero-streak {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fbbf24;
+      margin-top: 6px;
+    }
+    .daily-hero-countdown {
+      font-size: 11px;
+      color: #a1a1aa;
+      margin-top: 8px;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.02em;
+    }
 
-    /* ─── Tier Buttons ─── */
-    .tier-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
+    /* 4. Practice — Demoted, collapsible */
+    .practice-section {
+      width: 100%;
+      max-width: 360px;
     }
-    .tier-btn {
+    .practice-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #a1a1aa;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Unbounded', sans-serif;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .practice-toggle:hover { border-color: #3f3f46; }
+    .practice-toggle:active { transform: scale(0.98); }
+    .practice-chevron {
+      display: inline-block;
+      transition: transform 0.2s;
+      font-size: 14px;
+    }
+    .practice-toggle[aria-expanded="true"] .practice-chevron { transform: rotate(90deg); }
+    .practice-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease-out;
+    }
+    .practice-panel.open { max-height: 400px; }
+    .practice-tiers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding-top: 8px;
+    }
+    .practice-tier {
       background: #18181b;
       border: 1px solid #27272a;
       border-radius: 8px;
@@ -185,45 +248,99 @@
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
     }
-    .tier-btn:hover { border-color: #3f3f46; background: #1c1c1f; }
-    .tier-btn:active { transform: scale(0.97); }
-    .tier-name {
-      font-size: 12px;
-      font-weight: 700;
-      color: #f4f4f5;
-      margin-bottom: 2px;
-    }
-    .tier-count {
-      font-size: 10px;
-      color: #a1a1aa;
-      font-family: 'Space Mono', monospace;
-    }
-    .tier-stat {
+    .practice-tier:hover { border-color: #3f3f46; background: #1c1c1f; }
+    .practice-tier:active { transform: scale(0.97); }
+    .practice-tier-name { font-size: 12px; font-weight: 700; color: #f4f4f5; margin-bottom: 2px; }
+    .practice-tier-count { font-size: 10px; color: #a1a1aa; font-family: 'Space Mono', monospace; }
+    .practice-tier-stat {
       font-size: 9px;
       color: #71717a;
       margin-top: 4px;
       font-family: 'Space Mono', monospace;
     }
 
-    /* ─── Default Play Button ─── */
-    .play-default-btn {
-      width: 100%;
-      background: linear-gradient(135deg, rgba(34,211,238,0.15) 0%, rgba(34,211,238,0.05) 100%);
-      border: 1px solid rgba(34,211,238,0.4);
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 12px;
+    /* 5. Settings */
+    .settings-trigger {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #18181b;
+      border: 1px solid #27272a;
+      color: #a1a1aa;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
+      transition: border-color 0.2s, color 0.2s;
+      z-index: 30;
     }
-    .play-default-btn:hover { border-color: rgba(34,211,238,0.7); background: linear-gradient(135deg, rgba(34,211,238,0.22) 0%, rgba(34,211,238,0.08) 100%); }
-    .play-default-btn:active { transform: scale(0.97); }
-    .play-default-btn .play-label {
-      font-size: 14px; font-weight: 800; color: #22d3ee; letter-spacing: 0.04em;
+    .settings-trigger:hover { border-color: #3f3f46; color: #f4f4f5; }
+
+    /* Modals */
+    .menu-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
     }
-    .play-default-btn .play-sub {
-      font-size: 10px; color: #a1a1aa; margin-top: 2px; font-family: 'Space Mono', monospace;
+    .menu-modal.hidden { display: none; }
+    .menu-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+    }
+    .menu-modal-panel {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .menu-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #71717a;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .menu-modal-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #f4f4f5;
+      margin: 0 0 10px;
+    }
+    .menu-modal-body {
+      font-size: 12px;
+      color: #a1a1aa;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .settings-list { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #d4d4d8;
+    }
+    .settings-check {
+      width: 18px;
+      height: 18px;
+      accent-color: #22d3ee;
+      cursor: pointer;
     }
 
     /* ─── Card Flip 3D ─── */
@@ -588,52 +705,77 @@
 
 <!-- ═══ LANDING SCREEN ═══ -->
 <div id="landingScreen" class="screen active">
-  <div class="landing-hero">
-    <div class="landing-title">FADE</div>
-    <div class="hero-board" id="heroBoard"></div>
-    <div class="landing-tagline">Match them before they fade.</div>
+  <div class="menu-container">
+
+    <!-- 1. TITLE: Fading Letter-Cards -->
+    <div class="title-cards" id="titleCards" aria-label="FADE">
+      <div class="title-card"><span class="title-letter">F</span></div>
+      <div class="title-card"><span class="title-letter">A</span></div>
+      <div class="title-card"><span class="title-letter">D</span></div>
+      <div class="title-card"><span class="title-letter">E</span></div>
+    </div>
+
+    <!-- 2. TAGLINE + HOW TO PLAY -->
+    <div class="menu-explainer">
+      <p class="menu-tagline" id="menuTagline">Match them before they fade.</p>
+      <button class="menu-howto-btn" id="howtoBtn" type="button">How to play</button>
+    </div>
+
+    <!-- 3. DAILY CHALLENGE — PRIMARY HERO -->
+    <div id="dailyCard" class="daily-hero">
+      <div class="daily-hero-main">
+        <div class="daily-hero-label">Daily Challenge</div>
+        <div class="daily-hero-date" id="dailyDate">—</div>
+        <div class="daily-hero-streak" id="dailyStreak">🔥 Day 0</div>
+      </div>
+      <div class="daily-hero-countdown hidden" id="dailyCountdown">Tomorrow in —</div>
+    </div>
+
+    <!-- 4. PRACTICE — DEMOTED, COLLAPSIBLE -->
+    <div class="practice-section">
+      <button class="practice-toggle" id="practiceToggle" type="button" aria-expanded="false">
+        <span>Practice</span>
+        <span class="practice-chevron" aria-hidden="true">›</span>
+      </button>
+      <div class="practice-panel" id="practicePanel">
+        <div class="practice-tiers" id="practiceTiers"></div>
+      </div>
+    </div>
+
   </div>
+</div>
 
-  <div class="landing-scroll">
-    <!-- Daily Challenge -->
-    <div id="dailyCard" class="daily-card">
-      <div class="daily-label">Daily Challenge</div>
-      <div class="daily-date" id="dailyDate">—</div>
-      <div class="daily-streak" id="dailyStreak">🔥 Day 0</div>
-      <div class="daily-countdown hidden" id="dailyCountdown">Tomorrow in —</div>
-    </div>
+<!-- How-to-play modal -->
+<div id="howtoModal" class="menu-modal hidden">
+  <div class="menu-modal-backdrop" id="howtoBackdrop"></div>
+  <div class="menu-modal-panel" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
+    <button class="menu-modal-close" id="howtoClose" type="button" aria-label="Close">×</button>
+    <h2 id="howtoTitle" class="menu-modal-title">How to play</h2>
+    <p class="menu-modal-body">Match pairs before they fade.</p>
+  </div>
+</div>
 
-    <!-- Default Play -->
-    <div class="play-default-btn" onclick="startGameFromTier(16)">
-      <div class="play-label">▶️ Play Classic</div>
-      <div class="play-sub">16 cards · 8 pairs · 4×4 grid</div>
-    </div>
-
-    <!-- Tier Buttons -->
-    <div class="tier-grid">
-      <button class="tier-btn" data-count="12" onclick="startGameFromTier(12)">
-        <div class="tier-name">Warm-up</div>
-        <div class="tier-count">12 cards</div>
-        <div class="tier-stat" id="tierStat12">avg 0:42 · — finish</div>
-      </button>
-      <button class="tier-btn" data-count="16" onclick="startGameFromTier(16)">
-        <div class="tier-name">Classic</div>
-        <div class="tier-count">16 cards</div>
-        <div class="tier-stat" id="tierStat16">avg 1:30 · — finish</div>
-      </button>
-      <button class="tier-btn" data-count="20" onclick="startGameFromTier(20)">
-        <div class="tier-name">Hard</div>
-        <div class="tier-count">20 cards</div>
-        <div class="tier-stat" id="tierStat20">12% finish</div>
-      </button>
-      <button class="tier-btn" data-count="24" onclick="startGameFromTier(24)">
-        <div class="tier-name">Brutal</div>
-        <div class="tier-count">24 cards</div>
-        <div class="tier-stat" id="tierStat24">3% finish</div>
-      </button>
+<!-- Settings modal -->
+<div id="settingsModal" class="menu-modal hidden">
+  <div class="menu-modal-backdrop" id="settingsBackdrop"></div>
+  <div class="menu-modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <button class="menu-modal-close" id="settingsClose" type="button" aria-label="Close">×</button>
+    <h2 id="settingsTitle" class="menu-modal-title">Settings</h2>
+    <div class="settings-list">
+      <label class="settings-row">
+        <span class="settings-label">Reduced motion</span>
+        <input type="checkbox" id="prefReducedMotion" class="settings-check">
+      </label>
+      <label class="settings-row">
+        <span class="settings-label">Colorblind-safe palette</span>
+        <input type="checkbox" id="prefColorblind" class="settings-check">
+      </label>
     </div>
   </div>
 </div>
+
+<!-- Settings trigger -->
+<button class="settings-trigger" id="settingsTrigger" type="button" aria-label="Settings">⚙</button>
 
 <!-- ═══ GAME SCREEN ═══ -->
 <div id="gameScreen" class="screen">
@@ -935,6 +1077,19 @@ const dailyCountdown= $('dailyCountdown');
 const underlayGrid    = $('underlayGrid');
 
 const dailyCard     = $('dailyCard');
+const howtoBtn        = $('howtoBtn');
+const howtoModal      = $('howtoModal');
+const howtoClose      = $('howtoClose');
+const howtoBackdrop   = $('howtoBackdrop');
+const practiceToggle  = $('practiceToggle');
+const practicePanel   = $('practicePanel');
+const practiceTiers   = $('practiceTiers');
+const settingsTrigger = $('settingsTrigger');
+const settingsModal   = $('settingsModal');
+const settingsClose   = $('settingsClose');
+const settingsBackdrop= $('settingsBackdrop');
+const prefReducedMotion = $('prefReducedMotion');
+const prefColorblind  = $('prefColorblind');
 
 // ══════════════════════════════════════════════════════════════
 //  DETERMINISTIC SEEDING (Daily)
@@ -1075,58 +1230,100 @@ function showScreen(name) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  LANDING SCREEN
+//  MENU / LANDING SCREEN
 // ══════════════════════════════════════════════════════════════
-function initLanding() {
-  const today = getTodayUTC();
-  dailyDate.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Streak
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (STATS.lastDate === yesterday && STATS.streak > 0) {
-    // streak continues
-  } else if (STATS.lastDate !== today) {
-    // streak broken (or first play)
-    if (STATS.lastDate !== yesterday) STATS.streak = 0;
-  }
-  dailyStreak.textContent = STATS.streak > 0 ? `🔥 Day ${STATS.streak}` : '🔥 Day 0';
+function renderMenu(menu) {
+  // 1. Tagline
+  $('menuTagline').textContent = menu.tagline;
 
-  // Daily lock state
-  const dailyLocked = STATS.dailyPlayed === today;
+  // 2. Daily Hero
+  dailyDate.textContent = menu.dateLabel;
+  dailyStreak.textContent = menu.streak > 0 ? `🔥 Day ${menu.streak}` : '🔥 Day 0';
+  const dailyLocked = STATS.dailyPlayed === getTodayUTC();
   if (dailyLocked) {
     dailyCard.classList.add('locked');
     dailyCountdown.classList.remove('hidden');
-    updateDailyCountdown();
-    if (!window._dailyCountdownInterval) {
-      window._dailyCountdownInterval = setInterval(updateDailyCountdown, 1000);
-    }
+    dailyCountdown.textContent = menu.nextDailyCountdown;
   } else {
     dailyCard.classList.remove('locked');
     dailyCountdown.classList.add('hidden');
     dailyCard.onclick = () => startDaily();
   }
 
-  // Tier stats
-  updateTierStats();
-
-  // Hero mini-board
-  startHeroAnimation();
+  // 3. Practice tiers
+  const tiersEl = $('practiceTiers');
+  tiersEl.innerHTML = '';
+  menu.practiceModes.forEach(mode => {
+    const btn = document.createElement('button');
+    btn.className = 'practice-tier';
+    btn.type = 'button';
+    btn.innerHTML = `
+      <div class="practice-tier-name">${escapeHtml(mode.name)}</div>
+      <div class="practice-tier-count">${mode.cards} cards</div>
+      ${mode.finishRate != null ? `<div class="practice-tier-stat">${mode.finishRate}% finish</div>` : ''}
+    `;
+    btn.addEventListener('click', () => startGameFromTier(mode.cards));
+    tiersEl.appendChild(btn);
+  });
 }
 
-function updateTierStats() {
-  [12,16,20,24].forEach(count => {
-    const el = $(`tierStat${count}`);
-    const plays = STATS.tierPlays[count] || 0;
-    if (plays === 0) {
-      const defaults = { 12:'avg 0:42', 16:'avg 1:30', 20:'12% finish', 24:'3% finish' };
-      el.textContent = defaults[count];
-    } else {
-      const wins = STATS.tierWins[count] || 0;
-      const rate = Math.round((wins / plays) * 100);
-      const avg = STATS.tierAvgMoves[count] || 0;
-      el.textContent = `${rate}% win · avg ${avg} moves`;
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function initLanding() {
+  const today = getTodayUTC();
+
+  // Streak bookkeeping
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (STATS.lastDate === yesterday && STATS.streak > 0) {
+    // streak continues
+  } else if (STATS.lastDate !== today) {
+    if (STATS.lastDate !== yesterday) STATS.streak = 0;
+  }
+
+  // Build menu data object
+  const finishRates = { 12: 40, 16: 15, 20: 12, 24: 3 };
+  const menuData = {
+    dateLabel: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    streak: STATS.streak || 0,
+    nextDailyCountdown: '', // updated by interval
+    tagline: 'Match them before they fade.',
+    practiceModes: [
+      { name: 'Warm-up', cards: 12, finishRate: finishRates[12] },
+      { name: 'Classic', cards: 16, finishRate: finishRates[16] },
+      { name: 'Hard', cards: 20, finishRate: finishRates[20] },
+      { name: 'Brutal', cards: 24, finishRate: finishRates[24] },
+    ]
+  };
+
+  renderMenu(menuData);
+
+  // Start countdown interval if daily is locked
+  const dailyLocked = STATS.dailyPlayed === today;
+  if (dailyLocked) {
+    updateDailyCountdown();
+    if (!window._dailyCountdownInterval) {
+      window._dailyCountdownInterval = setInterval(updateDailyCountdown, 1000);
     }
-  });
+  }
+
+  // Wire interactions
+  $('howtoBtn').addEventListener('click', openHowto);
+  $('howtoClose').addEventListener('click', closeHowto);
+  $('howtoBackdrop').addEventListener('click', closeHowto);
+  $('practiceToggle').addEventListener('click', togglePractice);
+  $('settingsTrigger').addEventListener('click', openSettings);
+  $('settingsClose').addEventListener('click', closeSettings);
+  $('settingsBackdrop').addEventListener('click', closeSettings);
+  $('prefReducedMotion').addEventListener('change', saveSettings);
+  $('prefColorblind').addEventListener('change', saveSettings);
+
+  // Load settings
+  loadSettings();
 }
 
 function updateDailyCountdown() {
@@ -1141,60 +1338,52 @@ function updateDailyCountdown() {
   dailyCountdown.textContent = `Tomorrow in ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// Hero mini-board: 6 cards, auto-loop flip→match→fade
-let heroInterval = null;
-function startHeroAnimation() {
-  const board = $('heroBoard');
-  board.innerHTML = '';
-  const emojis = ['🔥','🧠','⚡','🎯','💀','👑'];
-  const cards = [];
-  emojis.forEach((e, i) => {
-    const c = document.createElement('div');
-    c.className = 'hero-card';
-    c.textContent = '·';
-    c.dataset.emoji = e;
-    board.appendChild(c);
-    cards.push(c);
-  });
+function togglePractice() {
+  const toggle = $('practiceToggle');
+  const panel = $('practicePanel');
+  const expanded = toggle.getAttribute('aria-expanded') === 'true';
+  toggle.setAttribute('aria-expanded', String(!expanded));
+  panel.classList.toggle('open', !expanded);
+}
 
-  let step = 0;
-  if (heroInterval) clearInterval(heroInterval);
+function openHowto() {
+  $('howtoModal').classList.remove('hidden');
+}
 
-  function tick() {
-    // Reset all
-    cards.forEach(c => { c.className = 'hero-card'; c.textContent = '·'; });
+function closeHowto() {
+  $('howtoModal').classList.add('hidden');
+}
 
-    if (step < 6) {
-      // Flip cards one by one
-      const c = cards[step];
-      c.classList.add('flipped');
-      c.textContent = c.dataset.emoji;
-    } else if (step < 9) {
-      // Show all flipped
-      cards.forEach(c => { c.classList.add('flipped'); c.textContent = c.dataset.emoji; });
-      // "Match" pairs
-      const matchIdx = (step - 6) * 2;
-      if (matchIdx < 6) {
-        cards[matchIdx].classList.add('matched');
-        cards[matchIdx + 1].classList.add('matched');
-      }
-    } else if (step < 15) {
-      // Fade remaining
-      cards.forEach((c, i) => {
-        if (!c.classList.contains('matched')) {
-          c.classList.add('flipped');
-          c.textContent = c.dataset.emoji;
-          c.classList.add(`faded-${Math.min(5, step - 8)}`);
-        }
-      });
-    }
+function openSettings() {
+  $('settingsModal').classList.remove('hidden');
+}
 
-    step++;
-    if (step > 15) step = 0;
-  }
+function closeSettings() {
+  $('settingsModal').classList.add('hidden');
+}
 
-  tick();
-  heroInterval = setInterval(tick, 200);
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('fade_settings_v1');
+    const prefs = raw ? JSON.parse(raw) : {};
+    $('prefReducedMotion').checked = !!prefs.reducedMotion;
+    $('prefColorblind').checked = !!prefs.colorblind;
+    applySettings(prefs);
+  } catch (e) {}
+}
+
+function saveSettings() {
+  const prefs = {
+    reducedMotion: $('prefReducedMotion').checked,
+    colorblind: $('prefColorblind').checked,
+  };
+  try { localStorage.setItem('fade_settings_v1', JSON.stringify(prefs)); } catch (e) {}
+  applySettings(prefs);
+}
+
+function applySettings(prefs) {
+  document.documentElement.classList.toggle('pref-reduced-motion', !!prefs.reducedMotion);
+  document.documentElement.classList.toggle('pref-colorblind', !!prefs.colorblind);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1969,7 +2158,6 @@ function backToMenu() {
   if (timerBar) timerBar.parentElement.classList.remove("hidden");
   if (victoryBanner) { victoryBanner.classList.remove("show"); victoryBanner.classList.add("hidden"); }
   underlayGrid.classList.remove("underlay-breathe", "underlay-victory");
-  if (heroInterval) clearInterval(heroInterval);
   showScreen("landing"); initLanding();
 }
 
