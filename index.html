@@ -340,7 +340,12 @@
       60% { transform: scale(1.05); }
       100% { opacity: 1; transform: scale(1); }
     }
-    .overlay-content { animation: bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    .overlay-content {
+      animation: bounceIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+      max-height: 92vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     @keyframes pulseBtn {
       0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
       50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(255,255,255,0); }
@@ -354,21 +359,26 @@
     }
 
     /* ─── Tempo Map ─── */
-    .tempo-map { display: grid; gap: 2px; justify-content: center; }
+    .tempo-map { display: grid; gap: 3px; justify-content: center; }
     .tempo-cell {
-      width: 36px;
-      height: 36px;
-      border-radius: 3px;
+      width: 38px;
+      height: 38px;
+      border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      line-height: 1;
       flex-shrink: 0;
     }
-    .tempo-fast { background: rgba(34,197,94,0.35); color: #4ade80; }
-    .tempo-med  { background: rgba(251,191,36,0.35); color: #fbbf24; }
-    .tempo-slow { background: rgba(239,68,68,0.35); color: #f87171; }
-    .tempo-empty { background: rgba(39,39,42,0.5); color: #52525b; }
+    .tempo-fast { background: rgba(34,197,94,0.25); }
+    .tempo-med  { background: rgba(251,191,36,0.25); }
+    .tempo-slow { background: rgba(239,68,68,0.25); }
+    .tempo-empty { background: rgba(39,39,42,0.5); }
+    .tempo-legend {
+      display: flex; justify-content: center; gap: 8px;
+      font-size: 10px; color: #a1a1aa;
+      font-family: 'Space Mono', monospace;
+      margin-top: 4px;
+    }
 
     /* ─── Victory Banner ─── */
     #victoryBanner {
@@ -694,8 +704,18 @@
   <div id="gameOverOverlay" class="hidden fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4">
     <div class="overlay-content flex flex-col items-center gap-3 w-full max-w-xs text-center bg-zinc-900 border border-zinc-800/80 shadow-2xl rounded-md px-4 py-4">
 
+      <!-- Game Over Header -->
+      <div class="w-full flex flex-col items-center gap-1 mb-1">
+        <div class="text-2xl">💀</div>
+        <div id="overlayTitle" class="text-lg font-bold text-zinc-100">Game Over</div>
+        <div class="text-[10px] uppercase tracking-widest text-zinc-500">Estimated Percentile</div>
+        <div id="percentileDisplay" class="text-xl font-bold text-cyan-400">Top 99%</div>
+        <div id="verdictDisplay" class="text-[11px] font-mono text-zinc-400 bg-zinc-800/60 rounded-full px-3 py-1 mt-1"></div>
+      </div>
+
       <!-- Tempo Map -->
       <div id="tempoMap" class="tempo-map w-full"></div>
+      <div id="tempoLegend" class="tempo-legend w-full"></div>
 
       <!-- Simplified Stats -->
       <div id="summaryStats" class="text-sm font-mono text-zinc-300">
@@ -888,7 +908,8 @@ const finalCombo    = $('finalCombo');
 const finalMoves    = $('finalMoves');
 const percentileDisplay = $('percentileDisplay');
 const verdictDisplay    = $('verdictDisplay');
-const tempoMapEl      = $('tempoMap');
+  const tempoMapEl      = $('tempoMap');
+  const tempoLegendEl   = $('tempoLegend');
 const tomorrowCountdown = $('tomorrowCountdown');
 const shareBtn      = $('shareBtn');
 const replayBtn     = $('replayBtn');
@@ -1550,7 +1571,15 @@ function showOverlay() {
   if (hudFull) hudFull.classList.add("hidden");
   if (timerBar) timerBar.parentElement.classList.add("hidden");
   const elapsed = S.firstFlipTime ? ((performance.now() - S.firstFlipTime) / 60000).toFixed(1) : "0.0";
-  if (summaryStats) { summaryStats.textContent = `Completed in ${S.moves} moves and ${elapsed} minutes`; }
+  if (summaryStats) { summaryStats.textContent = `${S.moves} moves · ${elapsed} min`; }
+  if (overlayTitle) { overlayTitle.textContent = S.matchedPairs >= S.totalPairs ? 'Victory!' : 'Game Over'; }
+  if (percentileDisplay) {
+    const pct = computePercentile(S.score || 0);
+    percentileDisplay.textContent = `Top ${pct}%`;
+  }
+  if (verdictDisplay) {
+    verdictDisplay.textContent = generateVerdict();
+  }
   renderTempoMap();
   if (S.mode === "daily") {
     tomorrowCountdown.classList.remove("hidden"); updateTomorrowCountdown();
@@ -1579,28 +1608,44 @@ function renderTempoMap() {
 
   // Choose columns so the grid stays compact (aim for ≤4 rows)
   const cols = Math.min(6, Math.max(4, Math.ceil(totalCards / 4)));
-  tempoMapEl.style.gridTemplateColumns = `repeat(${cols}, 36px)`;
+  tempoMapEl.style.gridTemplateColumns = `repeat(${cols}, 38px)`;
+
+  let cheetahCount = 0, rabbitCount = 0, turtleCount = 0, unusedCount = 0;
 
   for (let i = 0; i < totalCards; i++) {
     const flips = S.flipCounts[i] || 0;
     const cell = document.createElement('div');
     cell.className = 'tempo-cell';
 
-    // Show numeric flip count, or a dot if never flipped
-    cell.textContent = flips === 0 ? '·' : flips;
-
-    // Color-code by how many times this specific card was flipped
-    // Perfect = 1 flip (matched on first reveal)
+    // Animal emoji mapping based on flip count
     if (flips === 0) {
+      cell.textContent = '·';
       cell.classList.add('tempo-empty');
-    } else if (flips === 1) {
+      unusedCount++;
+    } else if (flips <= 2) {
+      cell.textContent = '🐆';
       cell.classList.add('tempo-fast');
-    } else if (flips <= 3) {
+      cheetahCount++;
+    } else if (flips <= 5) {
+      cell.textContent = '🐇';
       cell.classList.add('tempo-med');
+      rabbitCount++;
     } else {
+      cell.textContent = '🐢';
       cell.classList.add('tempo-slow');
+      turtleCount++;
     }
     tempoMapEl.appendChild(cell);
+  }
+
+  // Build legend
+  if (tempoLegendEl) {
+    const parts = [];
+    if (cheetahCount) parts.push(`🐆 ${cheetahCount}`);
+    if (rabbitCount)  parts.push(`🐇 ${rabbitCount}`);
+    if (turtleCount)  parts.push(`🐢 ${turtleCount}`);
+    if (unusedCount)  parts.push(`· ${unusedCount}`);
+    tempoLegendEl.textContent = parts.join('  ·  ');
   }
 }
 
