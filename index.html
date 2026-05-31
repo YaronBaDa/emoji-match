@@ -1837,7 +1837,7 @@ async function shareScore() {
   const run = {
     puzzleNumber: getDailyNumber(),
     mode: modeName,
-    timeMs: S.elapsedTime,
+    timeMs: Math.round(S.elapsedTime * 1000),
     streak: (STATS.streak || 0),
     pairs: S.pairRecoveryTypes.slice(),
     finishRate,
