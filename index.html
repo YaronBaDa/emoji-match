@@ -822,6 +822,7 @@ const S = {
   boardLockTimer: null,
   bombTriggered: false,
   clairvoyanceActive: false,
+  pairRecoveryTypes: [], // 'cool'|'clutch'|'faded' per matched pair
   mode: 'classic',
 };
 
@@ -1236,6 +1237,12 @@ function handleMatch(i1, i2) {
   showFloatingText(label, midX, midY);
   S.flipHistory.push(S.combo >= 3 ? "🔥" : "🟩");
   S.pairTimes.push(performance.now() - S.firstFlipTime);
+  // Recovery type: placeholder heuristic until fade-state detection is wired
+  const pairFlips = (S.pairFlipCounts[emoji] || 0);
+  let recovery = 'cool';
+  if (pairFlips > 4) recovery = 'clutch';
+  // TODO: wire real fade-state detection here for 'faded'
+  S.pairRecoveryTypes.push(recovery);
   const emoji = c1.emoji; const ab = GAME_CONFIG.ABILITY_TRIGGERS;
   if (emoji === ab.CLAIRVOYANCE) { triggerClairvoyance(); }
   else if (emoji === ab.TIMEWARP) { triggerTimeWarp(midX, midY); }
@@ -1667,68 +1674,66 @@ function persistStats(won) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SHARE
+//  SHARE MODULE
 // ══════════════════════════════════════════════════════════════
-function shareScore() {
-  const pct = computePercentile(S.score);
-  const verdict = generateVerdict();
-  const cardCount = GAME_CONFIG.GRID_ROWS * GAME_CONFIG.GRID_COLS;
-  const isDaily = S.mode === 'daily';
+const SHARE_EMOJI = { cool: '🟦', clutch: '🟧', faded: '🟥' };
 
-  // Build tempo map rows for share (5 per row, using emojis)
-  let tempoRows = [];
-  const total = S.totalPairs;
-  const perRow = 5;
-  const pairsPerCell = Math.max(1, Math.ceil(total / 20));
-  for (let i = 0; i < total; i += pairsPerCell) {
-    let sum = 0, cnt = 0;
-    for (let p = i; p < i + pairsPerCell && p < S.pairTimes.length; p++) {
-      sum += S.pairTimes[p]; cnt++;
-    }
-    const avg = cnt > 0 ? sum / cnt : 0;
-    tempoRows.push(avg < 8000 ? '⚡' : avg < 18000 ? '🟨' : '🟥');
-  }
-  // Group into rows of 5
-  let tempoStr = '';
-  for (let i = 0; i < tempoRows.length; i += perRow) {
-    tempoStr += tempoRows.slice(i, i + perRow).join('') + '\n';
-  }
-
-  const header = isDaily ? `🧠 FADE DAILY — ${getTodayUTC()}` : `🧠 FADE: ${cardCount}-CARD CHALLENGE`;
-  const text = [
-    header,
-    ``,
-    `🏆 Top ${pct}% today`,
-    `\u23F1\uFE0F ${formatTime(Math.floor(S.elapsedTime))} | \u{1F579}\u{FE0F} ${S.moves} moves`,
-    `🔥 x${S.maxCombo + 1} combo`,
-    ``,
-    tempoStr.trim(),
-    ``,
-    `💬 ${verdict}`,
-    ``,
-    `⚡ ${GAME_URL}`,
-  ].join('\n');
-
-  // Web Share API
-  if (navigator.share) {
-    navigator.share({ title: 'FADE', text }).catch(() => {});
-  }
-  // Clipboard
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => showShareCopied()).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
+function _formatShareTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function fallbackCopy(text) {
+function buildShareString(run) {
+  const lines = [`FADE #${run.puzzleNumber} · ${run.mode} 💨`];
+
+  let line2 = `⏱ ${_formatShareTime(run.timeMs)}  🔥${run.streak}`;
+  if (typeof run.percentile === 'number') line2 += ` · top ${run.percentile}%`;
+  lines.push(line2);
+
+  const trail = run.pairs.map(p => SHARE_EMOJI[p] || '🟦').join('');
+  lines.push(trail);
+
+  const clutchCount = run.pairs.filter(p => p === 'clutch').length;
+  const fadedCount  = run.pairs.filter(p => p === 'faded').length;
+  let line4 = `⚡${clutchCount} clutch`;
+  if (fadedCount === 0) line4 += ' · ✨clean';
+  lines.push(line4);
+
+  lines.push(`▶ ${run.shareUrl}`);
+  return lines.join('\n');
+}
+
+async function shareResult(run) {
+  const text = buildShareString(run);
+  if (navigator.share) {
+    try { await navigator.share({ title: 'FADE', text }); return true; } catch (e) {}
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(text); return false; } catch (e) {}
+  }
   const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand('copy'); showShareCopied(); } catch (e) { alert('Tap to copy:\n\n' + text); }
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) { alert(text); }
   document.body.removeChild(ta);
+  return false;
+}
+
+// Adapter: wires game state into the share module
+async function shareScore() {
+  const run = {
+    puzzleNumber: getDailyNumber ? getDailyNumber() : 1,
+    mode: (S.mode === 'daily' ? 'Daily' : (S.tierName || 'Classic')),
+    timeMs: S.elapsedTime,
+    streak: (S.streak || 0),
+    pairs: S.pairRecoveryTypes.slice(),
+    shareUrl: GAME_URL,
+    percentile: computePercentile(S.score),
+  };
+  const usedNative = await shareResult(run);
+  if (!usedNative) showShareCopied();
 }
 
 function showShareCopied() {
@@ -1755,7 +1760,7 @@ function playAgain() {
   if (timerBar) timerBar.parentElement.classList.remove("hidden");
   if (victoryBanner) { victoryBanner.classList.remove("show"); victoryBanner.classList.add("hidden"); }
   S.score = 0; S.combo = 0; S.maxCombo = 0; S.moves = 0;
-  S.flipHistory = []; S.pairTimes = [];
+  S.flipHistory = []; S.pairTimes = []; S.pairRecoveryTypes = [];
   S.matchedPairs = 0; S.flippedIndices = [];
   S.isProcessing = false; S.gameActive = false;
   S.elapsedTime = 0; S.elapsedTimerId = null; S.firstFlipTime = 0;
@@ -1793,6 +1798,7 @@ function initGame() {
   S.elapsedTime = 0; S.elapsedTimerId = null; S.firstFlipTime = 0;
   S.isBoardLocked = false; S.boardLockTimer = null;
   S.bombTriggered = false; S.clairvoyanceActive = false;
+  S.pairRecoveryTypes = [];
   underlayGrid.classList.remove("underlay-breathe", "underlay-victory");
   buildGrid(); updateScore(); updateComboDisplay(); updateElapsedDisplay();
   S.gameActive = true;
