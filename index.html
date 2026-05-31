@@ -358,13 +358,13 @@
     }
 
     /* ─── Tempo Map ─── */
-    .tempo-map { display: grid; gap: 3px; justify-content: center; }
+    .tempo-map { display: grid; gap: 2px; justify-content: center; }
     .tempo-cell {
-      width: 38px;
-      height: 38px;
+      width: 32px;
+      height: 32px;
       border-radius: 4px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+      font-size: 16px;
       line-height: 1;
       flex-shrink: 0;
     }
@@ -1607,7 +1607,7 @@ function renderTempoMap() {
 
   // Choose columns so the grid stays compact (aim for ≤4 rows)
   const cols = Math.min(6, Math.max(4, Math.ceil(totalCards / 4)));
-  tempoMapEl.style.gridTemplateColumns = `repeat(${cols}, 38px)`;
+  tempoMapEl.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
 
   let cheetahCount = 0, rabbitCount = 0, turtleCount = 0, unusedCount = 0;
 
