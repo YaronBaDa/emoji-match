@@ -1237,13 +1237,14 @@ function handleMatch(i1, i2) {
   showFloatingText(label, midX, midY);
   S.flipHistory.push(S.combo >= 3 ? "🔥" : "🟩");
   S.pairTimes.push(performance.now() - S.firstFlipTime);
+  const emoji = c1.emoji;
   // Recovery type: placeholder heuristic until fade-state detection is wired
   const pairFlips = (S.pairFlipCounts[emoji] || 0);
   let recovery = 'cool';
   if (pairFlips > 4) recovery = 'clutch';
   // TODO: wire real fade-state detection here for 'faded'
   S.pairRecoveryTypes.push(recovery);
-  const emoji = c1.emoji; const ab = GAME_CONFIG.ABILITY_TRIGGERS;
+  const ab = GAME_CONFIG.ABILITY_TRIGGERS;
   if (emoji === ab.CLAIRVOYANCE) { triggerClairvoyance(); }
   else if (emoji === ab.TIMEWARP) { triggerTimeWarp(midX, midY); }
   else if (emoji === ab.LOCKDOWN) { triggerSecurityLockdown(); }
