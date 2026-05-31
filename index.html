@@ -760,6 +760,19 @@ const GAME_CONFIG = {
   GRID_ROWS: 4,
 };
 
+// ══════════════════════════════════════════════════════════════
+//  ABILITY SPAWN RULES (tunable)
+// ══════════════════════════════════════════════════════════════
+const ABILITY_MIN = 1;   // minimum ability PAIRS per board
+const ABILITY_MAX = 2;   // maximum ability PAIRS per board
+// Scaling: Hard (20 cards = 10 pairs) → 1-3, Brutal (24 = 12) → 2-4.
+
+// ══════════════════════════════════════════════════════════════
+//  TEMPORARY TEST AFFORDANCES
+// ══════════════════════════════════════════════════════════════
+const FORCE_ALL_ABILITIES = false; // TEMP: forces all 4 abilities into every deck
+const DEBUG_DECK = false;          // TEMP: logs seed, abilities, and positions
+
 // ══════════════════════════════════════════════════════════════════
 //  DAILY MYSTERY EMOJI
 // ══════════════════════════════════════════════════════════════════
@@ -960,16 +973,6 @@ function getDailySeed() {
   return cyrb128(getTodayUTC() + '_fade_daily_v1');
 }
 
-function seededShuffle(arr, seed) {
-  const rng = mulberry32(seed);
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
 // ══════════════════════════════════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════════════════════════════════
@@ -981,9 +984,79 @@ function shuffle(arr) {
   return arr;
 }
 
-function getEmojisForLevel(count, seed) {
-  const source = seed ? seededShuffle([...ALL_EMOJIS], seed) : shuffle([...ALL_EMOJIS]);
-  return source.slice(0, count);
+// ══════════════════════════════════════════════════════════════
+//  DECK GENERATION (ability floor + deterministic daily)
+// ══════════════════════════════════════════════════════════════
+function createRng(seed) {
+  if (seed != null) return mulberry32(seed);
+  return Math.random;
+}
+
+function getAbilityEmojis() {
+  return Object.values(GAME_CONFIG.ABILITY_TRIGGERS);
+}
+
+function getRegularEmojis() {
+  const abilitySet = new Set(getAbilityEmojis());
+  return ALL_EMOJIS.filter(e => !abilitySet.has(e));
+}
+
+function pickN(arr, n, rng) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+function generateDeck(pairCount, seed) {
+  const rng = createRng(seed);
+  const abilities = getAbilityEmojis();
+  const regulars = getRegularEmojis();
+
+  let abilityCount;
+  if (FORCE_ALL_ABILITIES) {
+    abilityCount = Math.min(abilities.length, pairCount);
+  } else {
+    const min = Math.min(ABILITY_MIN, pairCount, abilities.length);
+    const max = Math.min(ABILITY_MAX, pairCount, abilities.length);
+    const range = max - min + 1;
+    abilityCount = min + Math.floor(rng() * range);
+  }
+
+  const chosenAbilities = pickN(abilities, abilityCount, rng);
+  const chosenRegulars  = pickN(regulars, pairCount - abilityCount, rng);
+  const deckEmojis = [...chosenAbilities, ...chosenRegulars];
+
+  // Shuffle the selected emoji set
+  for (let i = deckEmojis.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [deckEmojis[i], deckEmojis[j]] = [deckEmojis[j], deckEmojis[i]];
+  }
+
+  // Build pairs and shuffle positions
+  const pairs = [...deckEmojis, ...deckEmojis];
+  for (let i = pairs.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+  }
+
+  // TEMP: debug log
+  if (DEBUG_DECK) {
+    const abilitySet = new Set(abilities);
+    const abilityPositions = pairs
+      .map((e, i) => abilitySet.has(e) ? `${e}@${i}` : null)
+      .filter(Boolean);
+    const seedLabel = seed != null ? `seed=${seed}` : 'seed=random';
+    console.log(
+      `[FADE DEBUG] ${seedLabel} mode=${seed != null ? 'daily' : 'practice'} ` +
+      `pairCount=${pairCount} abilityCount=${abilityCount} ` +
+      `deck=[${deckEmojis.join('')}] positions=[${abilityPositions.join(', ')}]`
+    );
+  }
+
+  return pairs;
 }
 
 function formatTime(sec) {
@@ -1179,13 +1252,8 @@ function buildGrid() {
   S.pairFlipCounts = {};
   S.bombTriggered = false;
   const seed = S.mode === "daily" ? getDailySeed() : null;
-  const emojis = getEmojisForLevel(S.totalPairs, seed);
-  S.emojis = emojis;
-  const pairs = [...emojis, ...emojis];
-  if (S.mode === "daily") {
-    const rng = mulberry32(seed + 1);
-    for (let i = pairs.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pairs[i], pairs[j]] = [pairs[j], pairs[i]]; }
-  } else { shuffle(pairs); }
+  const pairs = generateDeck(S.totalPairs, seed);
+  S.emojis = [...new Set(pairs)];
   const size = calculateCardSize();
   const emojiSize = Math.round(size * GAME_CONFIG.EMOJI_SCALE_PERCENT / 100);
   gridEl.style.gridTemplateColumns = `repeat(${GAME_CONFIG.GRID_COLS}, ${size}px)`;
